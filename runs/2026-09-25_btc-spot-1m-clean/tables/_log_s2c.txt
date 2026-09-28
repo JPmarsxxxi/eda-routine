@@ -1,0 +1,80 @@
+[table] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\tables\09_monthly_coefficients.csv
+[table] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\tables\09_chow_2020.csv
+                         rel   pre2020  post2020   t_change      p_change
+0              AR(1) 1-min r -0.098974  0.009658  18.274812  1.313427e-74
+1  fwd5 r on taker imbalance  0.000014 -0.000122  -6.109867  9.971411e-10
+[plot] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\plots\09_relationship_stability.png
+[table] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\tables\10_ic_table.csv
+         X       Y      ic     t_hac       p        n  ic_2017  ic_2018  ic_2019  ic_2020  ic_2021  ic_2022  ic_2023Q1
+0        r    fwd1 -0.0204  -31.4223  0.0000  2879377   0.0247  -0.0113  -0.0220  -0.0274  -0.0292  -0.0309    -0.0207
+1        r    fwd5 -0.0259  -41.4368  0.0000  2859431   0.0127  -0.0259  -0.0346  -0.0387  -0.0237  -0.0236    -0.0209
+2        r   fwd20 -0.0214  -34.9212  0.0000  2826261   0.0071  -0.0235  -0.0312  -0.0261  -0.0184  -0.0195    -0.0239
+3      tr5    fwd1 -0.0204  -32.1039  0.0000  2859431   0.0276  -0.0034  -0.0228  -0.0417  -0.0289  -0.0276    -0.0217
+4      tr5    fwd5 -0.0509  -49.3353  0.0000  2846532   0.0042  -0.0504  -0.0655  -0.0751  -0.0471  -0.0440    -0.0464
+5      tr5   fwd20 -0.0433  -35.8883  0.0000  2821582   0.0001  -0.0428  -0.0578  -0.0557  -0.0428  -0.0360    -0.0482
+6      imb    fwd1 -0.0081  -13.9972  0.0000  2886432  -0.0103   0.0024  -0.0077  -0.0108  -0.0141  -0.0200    -0.0123
+7      imb    fwd5 -0.0138  -20.5783  0.0000  2863534  -0.0078  -0.0050  -0.0172  -0.0190  -0.0165  -0.0175    -0.0128
+8      imb   fwd20 -0.0122  -15.0808  0.0000  2827587  -0.0067  -0.0052  -0.0149  -0.0165  -0.0151  -0.0121    -0.0160
+9     imb5    fwd1 -0.0095  -16.9231  0.0000  2863534  -0.0065   0.0020  -0.0107  -0.0154  -0.0169  -0.0184    -0.0159
+10    imb5    fwd5 -0.0237  -23.4515  0.0000  2849353  -0.0052  -0.0170  -0.0314  -0.0304  -0.0260  -0.0250    -0.0298
+11    imb5   fwd20 -0.0202  -14.1871  0.0000  2822674  -0.0000  -0.0121  -0.0244  -0.0269  -0.0291  -0.0177    -0.0298
+12   dlogn    fwd1  0.0002    0.3201  0.7489  2879377  -0.0032  -0.0002   0.0010   0.0021   0.0021  -0.0030    -0.0018
+13   dlogn    fwd5 -0.0000   -0.0497  0.9603  2859431  -0.0024  -0.0023   0.0019   0.0006   0.0006   0.0007    -0.0017
+14   dlogn   fwd20 -0.0006   -1.9664  0.0493  2826261  -0.0008  -0.0014  -0.0007  -0.0008   0.0001  -0.0002    -0.0003
+15   absr5   fabs5  0.6611  402.0611  0.0000  2846532   0.4433   0.6710   0.6452   0.6340   0.5465   0.6367     0.6993
+16  absr60  fabs60  0.8314  442.1915  0.0000  2786025   0.7444   0.8448   0.7686   0.8112   0.7793   0.8069     0.8256
+[table] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\tables\10_leadlag_imbalance.csv
+[plot] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\plots\10_ic_leadlag.png
+[table] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\tables\11_hour_of_day.csv
+[table] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\tables\11_weekday.csv
+[table] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\tables\11_hour_mean_by_era.csv
+[table] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\tables\11_hour_abs_by_era.csv
+{'kw_hour_mean_p': np.float64(0.00012522888335656562), 'kw_hour_abs_p': np.float64(1.8100190433067116e-87), 'top_hour': 22, 'top_hour_eras_above': 6, 'bottom_hour': 3, 'bottom_hour_eras_below': 5, 'top_abs_hour': 0, 'top_abs_eras': 7, 'bottom_abs_hour': 5, 'bottom_abs_eras': 7, 'kw_weekday_mean_p': np.float64(0.5721461251465383), 'kw_weekday_abs_p': np.float64(1.1566347558415923e-10), 'top_weekday': 0, 'top_weekday_eras': 5, 'bottom_weekday': 3, 'bottom_weekday_eras': 5, 'lowest_abs_weekday': 5, 'lowest_abs_weekday_eras': 6}
+[plot] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\plots\11_calendar.png
+[table] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\tables\12_decile_sorts.csv
+                          0       1          2
+X                       imb     tr5     absr60
+Y                        f5      f5     fabs60
+spearman_decile     -0.6121    -1.0        1.0
+top_minus_bottom_bp  0.0232 -1.8271   910.6221
+t_hac                0.2753 -9.6802    93.2409
+p                    0.7831     0.0        0.0
+mse_linear              0.0     0.0     0.0004
+mse_cubic               0.0     0.0     0.0004
+cubic_coef              0.0    -0.0       -0.0
+d0                   0.0565  1.0849    138.614
+d1                   0.2692   0.554   200.4859
+d2                   0.1681  0.2841   242.4176
+d3                   0.1632  0.1287   278.7326
+d4                   0.0493    0.03   316.5832
+d5                  -0.1023 -0.0521   358.1184
+d6                  -0.0986 -0.1862   406.8278
+d7                   -0.157 -0.3098   480.5506
+d8                  -0.1478 -0.5037   599.8817
+d9                   0.0797 -0.7422  1049.2361
+[plot] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\plots\12_decile_sorts.png
+[table] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\tables\13_group_tests.csv
+                                              0  ...                                                  2
+test                 daily r weekend vs weekday  ...  fwd5 r after top vs bottom imbalance decile (p...
+mean_a_bp                                8.1991  ...                                            -0.0635
+mean_b_bp                                7.6043  ...                                             0.0918
+ks_p                                     0.0009  ...                                                0.0
+mw_p                                     0.6707  ...                                                0.0
+welch_p                                  0.9731  ...                                             0.0116
+eras_same_direction                           4  ...                                                  5
+
+[7 rows x 3 columns]
+[plot] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\plots\13_group_tests.png
+[table] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\tables\14_runs_flags.csv
+        zero_ret_share   runs  max_run  ...  flag_outlier  flag_wick  missing
+era                                     ...                                  
+2017          0.145341  16530       12  ...             2         19    24178
+2018          0.020552   9970        7  ...             0          8     3977
+2019          0.006797   3382        6  ...             1          3     1840
+2020          0.003599   1830        4  ...             0          6     1274
+2021          0.001125    580        4  ...             0         11     1074
+2022          0.003455   1727        4  ...             0          0        0
+2023Q1        0.000623     70        1  ...             0          0        0
+
+[7 rows x 8 columns]
+[plot] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\plots\14_runs_flags.png

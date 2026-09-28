@@ -1,0 +1,8 @@
+# Data travels via GitHub Release asset, not as a git blob (two files here are over GitHub's
+# 100MB hard per-blob limit: btcusdt_spot_1m_clean.parquet at 201MB, binance_btcusdtperp_1m.parquet
+# at 119MB). A cloud run fetches what it needs at the start of the session instead.
+data/
+
+__pycache__/
+*.pyc
+.venv/

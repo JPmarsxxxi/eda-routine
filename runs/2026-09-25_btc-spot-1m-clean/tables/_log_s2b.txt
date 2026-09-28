@@ -1,0 +1,42 @@
+lag 2 -0.018068002276468747 -7.565228306052245 3.8718397115352375e-14
+lag 7 -0.011900124548921481 -4.03461156844457 5.4692698289751445e-05
+[table] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\tables\06_fat_tails.csv
+                     0       1
+series           1-min  60-min
+n              2894978   46689
+skew             0.106  -0.551
+excess_kurt     83.652  30.988
+dagostino_p        0.0     0.0
+hill_left        2.771   3.154
+hill_left_lo     2.734   2.739
+hill_left_hi     2.821   3.571
+hill_right       2.728   3.267
+hill_right_lo     2.69   2.876
+hill_right_hi    2.765   3.728
+[table] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\tables\06_var_curve_60min.csv
+[plot] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\plots\06_fat_tails.png
+[table] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\tables\07_arch_lm.csv
+[table] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\tables\07_acf_absr_selected_lags.csv
+      era       arch_lm    p
+0    2017  24162.939332  0.0
+1    2018  54670.641454  0.0
+2    2019  22758.762637  0.0
+3    2020  63291.911918  0.0
+4    2021  58281.208811  0.0
+5    2022  21267.603457  0.0
+6  2023Q1  10694.376412  0.0
+ACF|r| 1440 - 720: {'2017': -0.017, '2018': -0.028, '2019': 0.007, '2020': -0.038, '2021': -0.019, '2022': 0.014, '2023Q1': 0.062}
+[plot] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\plots\07_vol_clustering.png
+[table] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\tables\08_regime_tests.csv
+                            0
+cusum_stat           0.737483
+cusum_p              0.648265
+chow_F_2020          0.214960
+chow_p               0.642956
+welch_p              0.648706
+ms_mean_state0_pct   0.127101
+ms_mean_state1_pct   0.001943
+ms_var0              3.736039
+ms_var1             37.571307
+ms_t_meandiff        0.518329
+[plot] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\plots\08_regimes.png

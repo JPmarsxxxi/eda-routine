@@ -1,0 +1,94 @@
+C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\scripts\s2a_memory.py:18: InterpolationWarning: The test statistic is outside of the range of p-values available in the
+look-up table. The actual p-value is smaller than the p-value returned.
+
+  a = adfuller(s, autolag="AIC"); k = kpss(s, regression="c", nlags="auto"); pp = PhillipsPerron(s)
+C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\scripts\s2a_memory.py:18: InterpolationWarning: The test statistic is outside of the range of p-values available in the
+look-up table. The actual p-value is greater than the p-value returned.
+
+  a = adfuller(s, autolag="AIC"); k = kpss(s, regression="c", nlags="auto"); pp = PhillipsPerron(s)
+C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\scripts\s2a_memory.py:23: InterpolationWarning: The test statistic is outside of the range of p-values available in the
+look-up table. The actual p-value is greater than the p-value returned.
+
+  a = adfuller(s, maxlag=30, autolag=None); k = kpss(s, regression="c", nlags="auto")
+C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\scripts\s2a_memory.py:23: InterpolationWarning: The test statistic is outside of the range of p-values available in the
+look-up table. The actual p-value is greater than the p-value returned.
+
+  a = adfuller(s, maxlag=30, autolag=None); k = kpss(s, regression="c", nlags="auto")
+C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\scripts\s2a_memory.py:23: InterpolationWarning: The test statistic is outside of the range of p-values available in the
+look-up table. The actual p-value is greater than the p-value returned.
+
+  a = adfuller(s, maxlag=30, autolag=None); k = kpss(s, regression="c", nlags="auto")
+C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\scripts\s2a_memory.py:23: InterpolationWarning: The test statistic is outside of the range of p-values available in the
+look-up table. The actual p-value is greater than the p-value returned.
+
+  a = adfuller(s, maxlag=30, autolag=None); k = kpss(s, regression="c", nlags="auto")
+C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\scripts\s2a_memory.py:23: InterpolationWarning: The test statistic is outside of the range of p-values available in the
+look-up table. The actual p-value is greater than the p-value returned.
+
+  a = adfuller(s, maxlag=30, autolag=None); k = kpss(s, regression="c", nlags="auto")
+C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\scripts\s2a_memory.py:23: InterpolationWarning: The test statistic is outside of the range of p-values available in the
+look-up table. The actual p-value is greater than the p-value returned.
+
+  a = adfuller(s, maxlag=30, autolag=None); k = kpss(s, regression="c", nlags="auto")
+[table] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\tables\01_unit_root_tests.csv
+                              series   adf_stat  ...      pp_p      n
+0            daily log close (level)  -1.452769  ...  0.539468   2041
+1                   daily log return -31.238723  ...  0.000000   2040
+2    1-min r, first 40k bars of 2017 -35.311913  ...       NaN  40000
+3    1-min r, first 40k bars of 2018 -37.666665  ...       NaN  40000
+4    1-min r, first 40k bars of 2019 -35.751087  ...       NaN  40000
+5    1-min r, first 40k bars of 2020 -36.360159  ...       NaN  40000
+6    1-min r, first 40k bars of 2021 -37.836384  ...       NaN  40000
+7    1-min r, first 40k bars of 2022 -35.695246  ...       NaN  40000
+8  1-min r, first 40k bars of 2023Q1 -35.085136  ...       NaN  40000
+
+[9 rows x 8 columns]
+[plot] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\plots\01_unit_root.png
+[table] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\tables\02_variance_ratio.csv
+q         2      5      15     60     240
+era                                      
+2017    0.788  0.679  0.666  0.775  0.786
+2018    0.972  0.924  0.886  0.860  0.738
+2019    0.994  0.973  0.934  0.933  0.891
+2020    0.988  0.960  0.895  0.832  0.759
+2021    1.024  0.988  0.930  0.847  0.813
+2022    1.011  0.997  0.959  0.951  0.928
+2023Q1  1.014  1.004  1.006  1.021  1.126
+pooled  0.930  0.861  0.797  0.748  0.676
+[plot] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\plots\02_variance_ratio.png
+[table] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\tables\03_ar1_by_era.csv
+    series     era     phi    t_hac       p        n  half_life_bars
+0    1-min  pooled -0.0535 -17.7363  0.0000  2886432             NaN
+1    1-min    2017 -0.1946 -25.6685  0.0000   152898             NaN
+2    1-min    2018 -0.0276  -5.7990  0.0000   521604             NaN
+3    1-min    2019 -0.0063  -1.0754  0.2822   523744             NaN
+4    1-min    2020 -0.0122  -1.1823  0.2371   525749             NaN
+5    1-min    2021  0.0242   4.6196  0.0000   524513          0.1863
+6    1-min    2022  0.0106   1.5189  0.1288   525599          0.1523
+7    1-min  2023Q1  0.0136   1.7082  0.0876   112319          0.1612
+8   60-min  pooled -0.0372  -4.0644  0.0000    46441             NaN
+9   60-min    2017 -0.1092  -3.0584  0.0022      936             NaN
+10  60-min    2018 -0.0539  -3.6930  0.0002     8676             NaN
+11  60-min    2019  0.0052   0.2836  0.7767     8716          0.1319
+12  60-min    2020 -0.0760  -2.4293  0.0151     8746             NaN
+13  60-min    2021  0.0035   0.2291  0.8188     8731          0.1226
+14  60-min    2022  0.0025   0.1383  0.8900     8759          0.1158
+15  60-min  2023Q1  0.0164   0.4141  0.6788     1871          0.1687
+[plot] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\plots\03_ar1_by_era.png
+[table] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\tables\04_hurst.csv
+        H_aggvar_r  H_rs_r  H_rs_absr
+era                                  
+pooled       0.470   0.529      0.799
+2017         0.438   0.509      0.757
+2018         0.473   0.530      0.774
+2019         0.488   0.527      0.796
+2020         0.472   0.521      0.806
+2021         0.475   0.535      0.785
+2022         0.489   0.535      0.822
+2023Q1       0.507   0.543      0.857
+[plot] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\plots\04_hurst.png
+[table] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\tables\05_acf_by_era.csv
+[table] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\tables\05_pacf_by_era_lags1_10.csv
+ACF lag1: {'2017': -0.179, '2018': -0.028, '2019': -0.006, '2020': -0.012, '2021': 0.024, '2022': 0.011, '2023Q1': 0.014}
+candidate lags >1: [2, 7]
+[plot] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\plots\05_acf_by_era.png

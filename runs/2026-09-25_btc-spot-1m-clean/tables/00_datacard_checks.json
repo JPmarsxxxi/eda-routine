@@ -1,0 +1,13 @@
+{
+ "rows_train": 2906457,
+ "first": "2017-08-17 04:00:00+00:00",
+ "last": "2023-03-19 23:59:00+00:00",
+ "days": 2041,
+ "days_first_bar_0000": 2007,
+ "days_last_bar_2359": 2018,
+ "days_with_bar_2400_equiv": 0,
+ "log_trades_excess_min00": 0.23745197469941282,
+ "log_trades_excess_min01": 0.14352183979565503,
+ "absr_ratio_min00": 1.357180843629622,
+ "absr_ratio_min01": 1.1975564200411832
+}

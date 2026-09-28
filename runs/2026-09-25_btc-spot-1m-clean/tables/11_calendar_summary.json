@@ -1,0 +1,20 @@
+{
+ "kw_hour_mean_p": 0.00012522888335656562,
+ "kw_hour_abs_p": 1.8100190433067116e-87,
+ "top_hour": 22,
+ "top_hour_eras_above": 6,
+ "bottom_hour": 3,
+ "bottom_hour_eras_below": 5,
+ "top_abs_hour": 0,
+ "top_abs_eras": 7,
+ "bottom_abs_hour": 5,
+ "bottom_abs_eras": 7,
+ "kw_weekday_mean_p": 0.5721461251465383,
+ "kw_weekday_abs_p": 1.1566347558415923e-10,
+ "top_weekday": 0,
+ "top_weekday_eras": 5,
+ "bottom_weekday": 3,
+ "bottom_weekday_eras": 5,
+ "lowest_abs_weekday": 5,
+ "lowest_abs_weekday_eras": 6
+}

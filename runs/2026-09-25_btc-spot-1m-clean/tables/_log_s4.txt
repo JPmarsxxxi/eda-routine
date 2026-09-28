@@ -1,0 +1,99 @@
+[table] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\tables\15_bh_adjusted_pvals.csv
+K = 50 survive BH: 38
+session 00-08 979440 (945546, 2)
+session 08-16 979680 (951874, 2)
+session 16-24 979680 (949112, 2)
+[table] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\tables\16_obs1_checks.csv
+                                            check  effect_bp     lo     hi       t        n
+0             base: top-bottom decile tr5 -> fwd5     -2.061 -2.416 -1.706 -11.376   569312
+1             (a) X scaled by trailing 60-min |r|     -1.173 -1.439 -0.908  -8.666   559723
+2   (a) partial slope bp per 1 sd tr5 | tr60, vol     -0.350 -0.645 -0.056  -2.332  2798599
+3                      (a) trailing-vol tercile 0     -0.187 -0.415  0.041  -1.607   186512
+4                      (a) trailing-vol tercile 1     -0.627 -0.968 -0.286  -3.605   186576
+5                      (a) trailing-vol tercile 2     -3.762 -4.598 -2.926  -8.818   186643
+6                                 (b) skip 2 bars     -2.002 -2.355 -1.648 -11.103   569184
+7                                     (b) ex 2017     -1.946 -2.286 -1.606 -11.227   546656
+8                         (b) drop top 1% |moves|     -2.830 -3.040 -2.619 -26.358   559264
+9                               (b) tr5 != 0 only     -2.065 -2.421 -1.710 -11.387   568198
+10                          (b) session 00-08 UTC     -1.126 -1.709 -0.544  -3.789   189114
+11                          (b) session 08-16 UTC     -2.239 -2.887 -1.590  -6.763   190380
+12                          (b) session 16-24 UTC     -2.774 -3.384 -2.164  -8.913   189826
+13                                   (d) era 2017     -4.844 -8.370 -1.318  -2.693    22656
+14                                   (d) era 2018     -1.820 -2.761 -0.878  -3.789   104306
+15                                   (d) era 2019     -1.826 -2.518 -1.135  -5.175   104738
+16                                   (d) era 2020     -2.477 -3.280 -1.673  -6.044   105136
+17                                   (d) era 2021     -3.196 -4.052 -2.339  -7.314   104892
+18                                   (d) era 2022     -0.960 -1.548 -0.373  -3.203   105120
+19                                 (d) era 2023Q1      0.617 -0.436  1.671   1.148    22464
+[plot] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\plots\16_obs1_checks.png
+[table] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\tables\17_obs2_checks.csv
+                                check  effect_bp     lo     hi      t        n
+0               imb alone (bp per sd)     -0.072 -0.109 -0.035 -3.797  2798599
+1                   imb | r, tr5, vol      0.111  0.059  0.163  4.179  2798599
+2                          imb5 alone     -0.164 -0.223 -0.106 -5.472  2798599
+3                  imb5 | r, tr5, vol      0.119  0.032  0.206  2.687  2798599
+4          top-bottom imb decile (bp)     -0.155 -0.290 -0.020 -2.258   572710
+5     (d) era 2017: imb | r, tr5, vol      0.026 -0.494  0.545  0.098    66991
+6     (d) era 2018: imb | r, tr5, vol      0.378  0.271  0.485  6.929   521029
+7     (d) era 2019: imb | r, tr5, vol     -0.003 -0.094  0.089 -0.062   523297
+8     (d) era 2020: imb | r, tr5, vol     -0.016 -0.164  0.132 -0.213   525238
+9     (d) era 2021: imb | r, tr5, vol      0.128 -0.000  0.257  1.958   524130
+10    (d) era 2022: imb | r, tr5, vol      0.013 -0.059  0.084  0.346   525600
+11  (d) era 2023Q1: imb | r, tr5, vol      0.099 -0.018  0.216  1.662   112314 corr(imb, r same bar) 0.30469859484168016
+[plot] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\plots\17_obs2_checks.png
+[table] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\tables\18_obs3_monthly_ar1_vs_liquidity.csv
+{'corr_ar1_logtrades': np.float64(0.35222262522400605), 'corr_ar1_zero_share': np.float64(-0.33860131342429545), 'corr_ar1_vol': np.float64(-0.043249227010726414), 'corr_ar1_hl': np.float64(0.13894720769553764), 'post2020_dummy_given_liquidity': (np.float64(-0.0003288000275554403), np.float64(-0.028957286860129647), np.float64(0.028299686805018764), np.float64(-0.022510727087237944), 68), 'ar1_drop_top1_pre': (np.float64(-0.07881793566947971), np.float64(0.001675764747434028)), 'ar1_drop_top1_post': (np.float64(-0.009528728063942903), np.float64(0.0012226917329855626)), 'ar1_by_vol_tercile': {0: (np.float64(-0.13666950729575952), np.float64(-0.00474038587512187)), 1: (np.float64(-0.06658776148387074), np.float64(-0.005219004121504098)), 2: (np.float64(-0.011287405992435324), np.float64(0.013821733015111247))}}
+[plot] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\plots\18_obs3_checks.png
+[table] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\tables\19_obs4_checks.csv
+                                 check  effect_bp     lo     hi     t     n
+0          21-23 UTC window r (bp/day)       8.56   3.99  13.14  3.67  2041
+1           window minus mean 2h chunk       8.64   3.87  13.40  3.55  2041
+2       (a) residual on trailing 24h r       8.61   3.97  13.26  3.63  2041
+3            (a) after trailing-24h up       2.09  -3.83   8.00  0.69   980
+4          (a) after trailing-24h down      12.51   5.06  19.96  3.29   918
+5                 (b) drop top 1% days       7.37   3.41  11.34  3.65  2020
+6                          (b) ex 2017       6.93   2.55  11.30  3.11  1904
+7    (b) US DST on (window = 17-19 NY)      10.43   5.15  15.71  3.87  1278
+8   (b) US DST off (window = 16-18 NY)       5.44  -3.08  13.96  1.25   763
+9                         (b) weekdays       9.84   3.73  15.96  3.16  1457
+10                        (b) weekends       5.37  -4.01  14.75  1.12   584
+11                        (d) era 2017      31.32   1.83  60.82  2.08   137
+12                        (d) era 2018       0.65 -11.31  12.62  0.11   365
+13                        (d) era 2019      11.21   3.29  19.14  2.77   365
+14                        (d) era 2020      15.15   7.22  23.07  3.74   366
+15                        (d) era 2021      12.10   0.81  23.39  2.10   365
+16                        (d) era 2022      -3.80 -13.45   5.84 -0.77   365
+17                      (d) era 2023Q1       3.66 -13.80  21.11  0.41    78 vol-scaled t 2.6405755657979073
+[plot] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\plots\19_obs4_checks.png
+[table] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\tables\20_obs5_checks.csv
+[table] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\tables\20_obs5_rel_profile.csv
+                                              check  effect_bp     lo     hi       t     n
+0   h0 minus h5, |r| relative to same-day mean hour      0.407  0.347  0.467  13.286  2030
+1                             (b) drop top 1% hours      0.382  0.324  0.439  13.089  1993
+2                                     (b) US DST on      0.408  0.331  0.485  10.424  1270
+3                                    (b) US DST off      0.404  0.308  0.501   8.230   760
+4                                      (d) era 2017      0.084 -0.114  0.283   0.831   136
+5                                      (d) era 2018      0.398  0.255  0.542   5.446   360
+6                                      (d) era 2019      0.373  0.219  0.528   4.724   362
+7                                      (d) era 2020      0.381  0.231  0.531   4.985   366
+8                                      (d) era 2021      0.517  0.394  0.640   8.226   363
+9                                      (d) era 2022      0.472  0.348  0.596   7.462   365
+10                                   (d) era 2023Q1      0.465  0.095  0.834   2.463    78
+{'peak_hour_dst_on': 0, 'peak_hour_dst_off': 15, 'us_open_hour_dst_on_rel': 1.1400333336148996, 'us_open_hour_dst_off_rel': 1.1732683005291697}
+[plot] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\plots\20_obs5_checks.png
+[table] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\tables\21_obs6_checks.csv
+                                   check  effect_bp       lo      hi      t     n
+0   weekend minus weekday |daily r| (bp)    -88.069 -111.165 -64.973 -7.474  2041
+1    (a) relative to trailing 4-week vol     -0.400   -0.497  -0.302 -8.051  2027
+2                   (b) drop top 1% days     -0.329   -0.416  -0.241 -7.332  2006
+3                            (b) ex 2017     -0.418   -0.518  -0.318 -8.169  1904
+4                           (d) era 2017     -0.124   -0.498   0.250 -0.652   123
+5                           (d) era 2018     -0.432   -0.693  -0.170 -3.232   365
+6                           (d) era 2019     -0.261   -0.545   0.023 -1.804   365
+7                           (d) era 2020     -0.367   -0.582  -0.151 -3.328   366
+8                           (d) era 2021     -0.439   -0.605  -0.272 -5.172   365
+9                           (d) era 2022     -0.556   -0.748  -0.363 -5.643   365
+10                        (d) era 2023Q1     -0.589   -0.998  -0.179 -2.816    78
+[plot] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\plots\21_obs6_checks.png
+{'real_2021': (np.float64(0.47494872992083237), np.float64(0.5348658523873298)), 'shuffled_mean': (np.float64(0.49977978853823124), np.float64(0.5406090461012171)), 'shuffled_sd': (np.float64(0.0032459313016515025), np.float64(0.002530630605010078))}
+[plot] C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean\plots\22_obs7_hurst_shuffle.png

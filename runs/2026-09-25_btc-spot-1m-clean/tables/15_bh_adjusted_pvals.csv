@@ -1,0 +1,51 @@
+test_id,tool,series,stat,p,note,p_bh,survives_bh_5pct
+01_adf_level,ADF,daily log close,adf,0.5567333827770934,null=unit root,0.6627778366393969,False
+01_pp_level,PP,daily log close,pp,0.5394676841678764,null=unit root,0.6578874197169224,False
+01_kpss_ret,KPSS,daily log return,kpss,0.1,null=stationary; p floored at 0.01/capped 0.1,0.125,False
+02_vr_q2,variance ratio,1-min r pooled,z*,3.802254640270107e-96,,1.3579480858107525e-95,True
+02_vr_q5,variance ratio,1-min r pooled,z*,7.071605645250673e-90,,2.2098767641408355e-89,True
+02_vr_q15,variance ratio,1-min r pooled,z*,2.040618058890213e-64,,5.101545147225532e-64,True
+02_vr_q60,variance ratio,1-min r pooled,z*,6.712228690709926e-34,,1.2430053130944306e-33,True
+02_vr_q240,variance ratio,1-min r pooled,z*,1.7953258193001946e-22,,3.2059389630360616e-22,True
+03_ar1_1-min,AR(1),1-min r pooled,t_HAC,2.2007611789678207e-70,,5.791476786757423e-70,True
+03_ar1_60-min,AR(1),60-min r pooled,t_HAC,4.816296553005443e-05,,6.880423647150633e-05,True
+05_acf_lag2,ACF (HAC slope),1-min r pooled,t_HAC,3.8718397115352375e-14,beta=-0.0181,6.453066185892063e-14,True
+05_acf_lag7,ACF (HAC slope),1-min r pooled,t_HAC,5.4692698289751445e-05,beta=-0.0119,7.596208095798812e-05,True
+06_normaltest_1-min,D'Agostino-Pearson,1-min r,K2,0.0,,6.25e-300,True
+06_normaltest_60-min,D'Agostino-Pearson,60-min r,K2,0.0,,6.25e-300,True
+07_archlm_2021,ARCH-LM,1-min r 2021,LM,0.0,,6.25e-300,True
+08_cusum,OLS-CUSUM,daily r,sup,0.6482650639280224,,0.7046359390521982,False
+08_chow2020,Chow,daily r mean at 2020-01-01,F,0.6429564799172802,,0.7046359390521982,False
+08_markov_meandiff,Markov switching,daily r state means,t,0.604228527654138,,0.6866233268797023,False
+09_chow_ar1,Chow (HAC interaction),AR(1) 1-min r at 2020-01-01,t,1.313426921534275e-74,,3.648408115372986e-74,True
+09_chow_imb,Chow (HAC interaction),fwd5 on imbalance at 2020-01-01,t,9.97141097299634e-10,,1.5108198443933848e-09,True
+10_ic_r_f1,Spearman IC (HAC),r -> fwd1 r,t,1.0043073734599423e-216,,4.184614056083093e-216,True
+10_ic_r_f5,Spearman IC (HAC),r -> fwd5 r,t,0.0,,6.25e-300,True
+10_ic_r_f20,Spearman IC (HAC),r -> fwd20 r,t,3.5387287314251428e-267,,1.7693643657125714e-266,True
+10_ic_tr5_f1,Spearman IC (HAC),tr5 -> fwd1 r,t,3.8851489528068046e-226,,1.7659767967303658e-225,True
+10_ic_tr5_f5,Spearman IC (HAC),tr5 -> fwd5 r,t,0.0,,6.25e-300,True
+10_ic_tr5_f20,Spearman IC (HAC),tr5 -> fwd20 r,t,4.643256972919333e-282,,2.5795872071774074e-281,True
+10_ic_imb_f1,Spearman IC (HAC),imb -> fwd1 r,t,1.6212753245803838e-44,,3.117837162654584e-44,True
+10_ic_imb_f5,Spearman IC (HAC),imb -> fwd5 r,t,4.2972299539052873e-94,,1.4324099846350957e-93,True
+10_ic_imb_f20,Spearman IC (HAC),imb -> fwd20 r,t,2.1651658511290443e-51,,4.510762189852176e-51,True
+10_ic_imb5_f1,Spearman IC (HAC),imb5 -> fwd1 r,t,3.042316643350913e-64,,7.243611055597411e-64,True
+10_ic_imb5_f5,Spearman IC (HAC),imb5 -> fwd5 r,t,1.2758000873690016e-121,,4.906923412957698e-121,True
+10_ic_imb5_f20,Spearman IC (HAC),imb5 -> fwd20 r,t,1.101975228535869e-45,,2.203950457071738e-45,True
+10_ic_dlogn_f1,Spearman IC (HAC),dlogn -> fwd1 r,t,0.748921745076411,,0.7801268177879281,False
+10_ic_dlogn_f5,Spearman IC (HAC),dlogn -> fwd5 r,t,0.9603326639601956,,0.9603326639601956,False
+10_ic_dlogn_f20,Spearman IC (HAC),dlogn -> fwd20 r,t,0.0492534265753176,,0.06314541868630462,False
+10_ic_absr5_fabs5,Spearman IC (HAC),absr5 -> fabs5,t,0.0,,6.25e-300,True
+10_ic_absr60_fabs60,Spearman IC (HAC),absr60 -> fabs60,t,0.0,,6.25e-300,True
+11_kw_hour_mean,Kruskal-Wallis,hour_mean,H,0.0001252288833565,,0.00016922822075202704,True
+11_kw_hour_abs,Kruskal-Wallis,hour_abs,H,1.810019043306712e-87,,5.323585421490329e-87,True
+11_kw_weekday_mean,Kruskal-Wallis,weekday_mean,H,0.5721461251465383,,0.6652861920308585,False
+11_kw_weekday_abs,Kruskal-Wallis,weekday_abs,H,1.1566347558415924e-10,,1.8072418060024881e-10,True
+12_decile_imb_f5,decile sort top-bottom (HAC),imb -> f5,t,0.7830752599956823,,0.7990563877506962,False
+12_decile_tr5_f5,decile sort top-bottom (HAC),tr5 -> f5,t,3.661535892498939e-22,,6.31299291810162e-22,True
+12_decile_absr60_fabs60,decile sort top-bottom (HAC),absr60 -> fabs60,t,0.0,,6.25e-300,True
+13_daily_r_week_ks,KS,daily r weekend vs weekday,D,0.0009421460984785,,0.0012396659190506579,True
+13_daily_r_week_mw,Mann-Whitney,daily r weekend vs weekday,U,0.6707469821785847,,0.71356061933892,False
+13_daily_|r|_we_ks,KS,daily |r| weekend vs weekday,D,5.778426540363464e-09,,8.4976860887698e-09,True
+13_daily_|r|_we_mw,Mann-Whitney,daily |r| weekend vs weekday,U,1.9814332999414005e-12,,3.1958601611958074e-12,True
+13_imb_topbot_ks,KS,fwd5 top vs bottom imbalance decile,D,1.2826890757546404e-62,,2.91520244489691e-62,True
+13_imb_topbot_mw,Mann-Whitney,fwd5 top vs bottom imbalance decile,U,1.0134646532534137e-59,,2.203184028811769e-59,True
