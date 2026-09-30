@@ -46,3 +46,10 @@ median round-trip cost; power simulations are run at an effect size tied to that
 BTC hour-of-day (21-23 UTC); BTC flow-imbalance / positioning / crowd positioning (so no funding / long-short / taker-imbalance
 hypotheses); BTC-dislocation propagation to other coins (so no BTC-leads-alts hypotheses); short-horizon reversal after taker
 imbalance. Any Phase 0 observation that falls into one of these topics is logged but NOT turned into a hypothesis.
+
+## D10. Children born on CONFIRM (added at cell_01, before cell_02 was written)
+RUNBOOK_v3: a hypothesis may never be re-tested on the slice that produced it, and CONFIRM is opened once per hypothesis.
+A child born from a CONFIRM result (e.g. H6 from cell_01) therefore takes its test on EXPLORE (the slice it was not born on;
+DESIGN_v3 "observations become new hypotheses, tested on a slice they were not born on"). Conservative default for its state:
+if it passes on EXPLORE it is recorded **HIGH-EXPLORE**, it does NOT get a CONFIRM opening (CONFIRM produced it) and it is NOT
+eligible for VAL (VAL is only for HIGH-CONFIRM). It is reported as awaiting a fresh slice — the user's call.
