@@ -17,9 +17,11 @@ rivals: outlier impostor — one or two crash-rebound pairs (2020-03-12/13 type)
 born_on: EXPLORE #9
 prior: 0.39
 anchor: 0.30 x 0.35 (HXZ 2020 replication rate) + 0.70 x 0.40 (own: 6/10 coins significant, stable sign, a mechanism, but kurtosis 10-104 means few days drive it) = 0.385 -> 0.39
-posterior: 0.39
+posterior: 0.227
 state: OPEN
 evidence:
+- cell_06: refuted (CONFIRM, daily IC -0.047, z -1.38; power 0.56) weight=0.4605 capped=no -> posterior 0.227 [CONFIRM spent; extreme-day concentration seen]
+- cell_07: redirect (EXPLORE, extreme-days only) weight=1 capped=no -> posterior 0.227 (spawned H7)
 
 ## H2 — Daily reversal is stronger after panel-wide volume-shock days
 parent: none
@@ -31,9 +33,10 @@ rivals: volatility impostor — high-volume days are high-|r| days, and a larger
 born_on: EXPLORE #13
 prior: 0.35
 anchor: 0.30 x 0.35 (HXZ 2020) + 0.70 x 0.35 (own: a descriptive split, never tested on EXPLORE, n 448/895 days, same mechanism as H1) = 0.35
-posterior: 0.35
+posterior: 0.708
 state: OPEN
 evidence:
+- cell_08: supported (CONFIRM, diff IC -0.202, z -2.14) weight=4.5 capped=no -> posterior 0.708 [CONFIRM spent]
 
 ## H3 — Same-hour-yesterday reversal of 1h returns (lag-24 ACF)
 parent: none
@@ -77,10 +80,11 @@ rivals: bid-ask bounce at block edges (OBS #4: Roll 23-36 bp is too large to be 
 born_on: EXPLORE #6
 prior: 0.39
 anchor: 0.30 x 0.35 (HXZ 2020) + 0.70 x 0.40 (own: VR(6) < 1 in 10/10 but Lo-MacKinlay SE is optimistic under the vol clustering of OBS #7; a mechanism) = 0.385 -> 0.39
-posterior: 0.865
-state: HIGH-CONFIRM
+posterior: 0.985
+state: HIGH-VAL
 evidence:
 - cell_01: supported (CONFIRM, IC -0.032, z -1.89) weight=10 capped=yes (raw 15.6) -> posterior 0.865 [effect is half the economic threshold; lives in 2022-05..2023-03 only]
+- cell_09: supported (VAL, IC -0.063, z -2.85; ex-BTC z -2.77) weight=10 capped=yes (raw 12.8) -> posterior 0.985 [VAL_NOTE: weak evidence; below costs]
 
 ## H6 — 6h reversal is stronger when trailing volatility is high
 parent: H5
@@ -96,3 +100,18 @@ posterior: 0.870
 state: HIGH-EXPLORE
 evidence:
 - cell_02: supported (EXPLORE, diff IC -0.081, z -2.48) weight=10 capped=yes (raw 19.7) -> posterior 0.870 [no CONFIRM/VAL per DECISIONS D10]
+
+## H7 — Crash-day rebound (extreme down day -> next-day bounce)
+parent: H1
+source: cells/cell_07_result.md (redirect: EXPLORE big-day IC -0.299 z -2.52 vs other days -0.023; next day after big DOWN days +308 bp)
+question: Does a coin rebound on the day after an extreme down day (its daily return in the bottom tail), while ordinary days show no reversal?
+hypothesis: a change in [close] over UTC day d that falls in the coin's extreme-down tail (daily log return below its 5th percentile over the slice) predicts [a positive log return over UTC day d+1] because such days are forced-selling days (margin calls and perp liquidation cascades, stop runs) that push price below what informed holders will pay, and the overshoot is bought back once the forced flow stops.
+forbids: next-day mean return after extreme-down days <= 0 on a fresh slice; OR a comparable next-day reversal after ordinary days (then it is not a crash effect); OR an equal-sized fade after extreme UP days (then it is symmetric overreaction, not forced selling)
+rivals: outlier impostor — two or three crash/rebound pairs (2020-03-12/13, 2022-06, 2022-11) carry the mean (OBS #1: kurtosis 10-104); volatility — after a crash next-day |r| is huge, so any mean is a draw from a very wide distribution; survivorship of the rebound in the chosen coins — the 10 coins all survived to 2023, a crashed coin that never rebounded (LUNA, FTT) is not in the panel
+born_on: EXPLORE cell_07 (redirect of H1; CONFIRM cell_06 descriptives already show the same direction)
+prior: 0.42
+anchor: 0.30 x 0.35 (HXZ 2020) + 0.70 x 0.45 (own: EXPLORE z -2.5 on 398 big days, same direction in CONFIRM descriptives, a forced-flow mechanism; but a survivorship-biased 10-coin panel and a handful of days carry it) = 0.42
+posterior: 0.42
+state: OPEN
+evidence:
+- cell_07: spawned by redirect (EXPLORE); no test of H7 run (DECISIONS D11: its statistic was already seen on CONFIRM) -> posterior 0.42

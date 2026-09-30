@@ -80,3 +80,21 @@ if __name__ == "__main__" and sys.argv[1] == "H6":
 if __name__ == "__main__" and sys.argv[1] == "R5":
     N = 7
     print("cell_05 FM on EXPLORE size:", power_fm(1100, 0.0, sims=200)); print("cell_05 FM on EXPLORE power (b3=28bp):", power_fm(1100, 0.0028, sims=200))
+
+def power_big(days=1400, n_coins=6, phi_big=-0.2, sims=200):
+    """Power of the IC on the top-10% |r| days (pooled products, clustered by day) when only those days reverse by phi_big."""
+    from tests import nscore, nw_se
+    global N
+    N0 = N; N = n_coins; hits = 0
+    for _ in range(sims):
+        X, _, _ = panel(days, 0.0); V = X.values.copy(); A = np.abs(V); thr = np.nanquantile(A, .9, axis=0)
+        for k in range(1, days): V[k] = V[k] + np.where(A[k - 1] >= thr, phi_big, 0.0) * V[k - 1]
+        X = pd.DataFrame(V); Z = nscore(X); prod = Z * Z.shift(-1); big = X.abs().ge(X.abs().quantile(.9))
+        c = prod.where(big).mean(axis=1).dropna(); se, n = nw_se(c.values); hits += c.mean() / se < -1.645
+    N = N0; return hits / sims
+if __name__ == "__main__" and sys.argv[1] == "R7":
+    print("cell_07 big-day IC size:", power_big(phi_big=0.0)); print("cell_07 big-day IC power (phi_big=-0.2):", power_big())
+if __name__ == "__main__" and sys.argv[1] == "R7min":
+    print("cell_07 big-day IC power (phi_big=-0.024):", power_big(phi_big=-0.024))
+if __name__ == "__main__" and sys.argv[1] == "VAL5":
+    print("VAL H5 size:", power_lag(250 * 4, 0.0, per_day=4, sims=300)); print("VAL H5 power (phi=-0.065):", power_lag(250 * 4, -0.065, per_day=4, sims=300))

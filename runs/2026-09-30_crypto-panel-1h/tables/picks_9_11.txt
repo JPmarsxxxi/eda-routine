@@ -1,0 +1,15 @@
+== pick #9 (13:08:50)
+H7: posterior 0.420 -- no admissible test (statistic already seen on CONFIRM (D11); EXPLORE produced it) -> E|shift| 0.0 pp
+H3: posterior 0.795 -- no admissible test (CONFIRM spent (cell_03); EXPLORE produced it) -> E|shift| 0.0 pp
+H2: posterior 0.708 -- no admissible test (CONFIRM spent (cell_08); EXPLORE produced it) -> E|shift| 0.0 pp
+H1: posterior 0.227 -- no admissible test (CONFIRM spent (cell_06); EXPLORE produced it) -> E|shift| 0.0 pp
+== pick #10 (13:08:50)
+H7: posterior 0.420 -- no admissible test (statistic already seen on CONFIRM (D11); EXPLORE produced it) -> E|shift| 0.0 pp
+H3: posterior 0.795 -- no admissible test (CONFIRM spent (cell_03); EXPLORE produced it) -> E|shift| 0.0 pp
+H2: posterior 0.708 -- no admissible test (CONFIRM spent (cell_08); EXPLORE produced it) -> E|shift| 0.0 pp
+H1: posterior 0.227 -- no admissible test (CONFIRM spent (cell_06); EXPLORE produced it) -> E|shift| 0.0 pp
+== pick #11 (13:08:50)
+H7: posterior 0.420 -- no admissible test (statistic already seen on CONFIRM (D11); EXPLORE produced it) -> E|shift| 0.0 pp
+H3: posterior 0.795 -- no admissible test (CONFIRM spent (cell_03); EXPLORE produced it) -> E|shift| 0.0 pp
+H2: posterior 0.708 -- no admissible test (CONFIRM spent (cell_08); EXPLORE produced it) -> E|shift| 0.0 pp
+H1: posterior 0.227 -- no admissible test (CONFIRM spent (cell_06); EXPLORE produced it) -> E|shift| 0.0 pp

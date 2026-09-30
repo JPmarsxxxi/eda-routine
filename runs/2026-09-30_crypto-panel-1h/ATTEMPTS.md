@@ -17,3 +17,14 @@
 | 13 | cell_03 | CONFIRM (1st opening for H3) | H3 | 1h IC at lags 23/24/25 (+ desc lags 1,2,12,48, halves, per coin, by hour) | supported: -0.035, z -4.38; below economic size | 12 |
 | 14 | cell_04 | CONFIRM (1st opening for H4) | H4 | daily FM interaction rel x volume shock (+ b1, b2, halves, tercile table) | refuted: b3 -14.5 bp, z -2.32 (opposite sign) | 13 |
 | 15 | cell_05 | EXPLORE (redirect for H4, no weight) | (H4 closed) | FM interaction by era, raw + rank | absent everywhere: b3 +3.6 bp, z 0.40 | 14 |
+| 16 | cell_06 | CONFIRM (1st opening for H1) | H1 | daily IC lag 1 (+ lags 2,3,7, halves, per coin, big-move split, weekday, deciles) | refuted: -0.047, z -1.38; extreme days -0.227 vs -0.027 | 15 |
+| 17 | cell_07 | EXPLORE (redirect for H1, no weight) | (H1) | daily IC on top-10% |r| days vs others, by era | extreme-days only: -0.299 (z -2.5) vs -0.023; spawned H7 | 16 |
+| 18 | cell_08 | CONFIRM (1st opening for H2) | H2 | daily IC, high panel-volume-shock days minus other (+ terciles, halves, excl. big moves) | supported: -0.202, z -2.14 | 17 |
+| 19 | cell_09 | VAL (the session's one VAL opening) | H5 | 6h-block IC lag 1 (+ ex-BTC, per coin, halves, decay) | supported: -0.063, z -2.85; below costs | 18 |
+
+**K = 18 looks**: 9 Phase 0 looks on EXPLORE (p0_01..p0_07, p0_03b, p0_04e) + 9 test cells = 5 CONFIRM openings (cell_01 H5,
+cell_03 H3, cell_04 H4, cell_06 H1, cell_08 H2) + 3 EXPLORE cells (cell_02 H6, cell_05 and cell_07 redirects) + 1 VAL opening
+(cell_09 H5). Each test cell also printed pre-registered descriptives (other lags / halves / per coin) that are not separate
+decisions but ARE extra looks: counting every printed IC, the effective number of statistics seen is ~120; downstream DSR
+deflation should use K >= 18 and treat ~120 as the upper bound. The cell_04 debug load re-read the same CONFIRM data to check an
+intercept (no new statistic). Power simulations touched no data.

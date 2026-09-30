@@ -53,3 +53,16 @@ A child born from a CONFIRM result (e.g. H6 from cell_01) therefore takes its te
 DESIGN_v3 "observations become new hypotheses, tested on a slice they were not born on"). Conservative default for its state:
 if it passes on EXPLORE it is recorded **HIGH-EXPLORE**, it does NOT get a CONFIRM opening (CONFIRM produced it) and it is NOT
 eligible for VAL (VAL is only for HIGH-CONFIRM). It is reported as awaiting a fresh slice — the user's call.
+
+## D11. A redirect child whose statistic CONFIRM has already shown (written with cell_07, before it ran)
+If a redirect spawns a child whose defining statistic was already printed on CONFIRM as a pre-registered descriptive of the
+parent's CONFIRM cell (e.g. H1's big-move split in cell_06), opening CONFIRM for that child would be re-reading a number already
+seen, i.e. confirmation on the slice that produced it. Conservative default: the child is entered with its prior, stays OPEN,
+gets no CONFIRM opening and no VAL, and is reported as a lead needing a fresh slice (TEST is the user's to open).
+
+## D12. Opening VAL (written before cell_09)
+HOLDOUT_RULES.md rule 3 says opening a held-out window is the user's decision. RUNBOOK_v3 (whose HOLDOUTS section "always
+wins") prescribes exactly one VAL opening per session, at Phase 3, for hypotheses that reached HIGH-CONFIRM, rule written first,
+VAL_NOTE quoted, never called out-of-sample proof. Reading: the user made that decision in RUNBOOK_v3 for VAL; rule 3 governs
+TEST and the sealed ranges, which are not in this data copy. Default taken: open VAL once, for H5 only (the only HIGH-CONFIRM
+entry). H6 (HIGH-EXPLORE) is not opened on VAL (D10).
