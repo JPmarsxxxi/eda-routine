@@ -1,0 +1,11 @@
+coin,corr_dvol_dquotevol,corr_dvol_dn,spearman_absr_detrended_logvol,twin_vol_quotevol,vol_is_vol_proxy
+BTCUSD,1.0,0.891,0.469,True,False
+ETHUSD,1.0,0.893,0.446,True,False
+BNBUSD,1.0,0.799,0.379,True,False
+SOLUSD,1.0,0.916,0.496,True,False
+XRPUSD,1.0,0.929,0.445,True,False
+DOGEUSD,1.0,0.859,0.376,True,False
+ADAUSD,1.0,0.91,0.464,True,False
+LTCUSD,1.0,0.911,0.439,True,False
+BCHUSD,1.0,0.917,0.421,True,False
+DOTUSD,1.0,0.88,0.4,True,False

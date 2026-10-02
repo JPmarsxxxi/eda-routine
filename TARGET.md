@@ -6,53 +6,62 @@ Edit this file, then set STATUS to READY and click "Run now" on the routine. The
 DATA MUST BE PREPARED FIRST: `python C:\Users\User\eda-routine\prep_target.py <source> <name>` writes a copy that
 STOPS at the end of VAL (TEST and sealed rows are never copied). Point DATA at that copy, never at the source.
 
-STATUS: DONE C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean_v2
+STATUS: DONE runs/2026-09-30_crypto-panel-1h
 
-NAME: btc-spot-1m-clean
+NAME: crypto-panel-1h
 
-DATA: C:\Users\User\eda-routine\data\btcusdt_spot_1m_clean\btcusdt_spot_1m_clean.parquet
-      Read C:\Users\User\eda-routine\data\btcusdt_spot_1m_clean\CLEANING_LOG.md and CUT.json first, and look at
-      plots\ in that folder. 3,274,945 rows, 2017-08-17 04:00 to 2023-11-30 23:59 UTC, index `t` (tz-aware UTC).
+DATA: /home/user/eda-routine/data/crypto_panel_2026-09-30/   (cloud session; on the desktop this is
+      C:\Users\User\eda-routine\data\crypto_panel_2026-09-30\). Read README.md, MANIFEST.csv and CUT.json there FIRST.
+      224 parquet files in 7 families, 5,685,039 rows, every file cut at 2023-11-30 23:59:59 UTC (verified per file).
+      PRIMARY TARGET (the returns every hypothesis must predict): spot/binance_<COIN>.parquet for the 10 coins BTCUSD,
+      ETHUSD, BNBUSD, SOLUSD, XRPUSD, DOGEUSD, ADAUSD, LTCUSD, BCHUSD, DOTUSD. Everything else is a candidate explanatory
+      series; use MANIFEST.csv `knowable` to lag it to its entry-knowable time before ANY join (data-hygiene.md rule).
 
-PROVENANCE: Trade-based OHLCV bars (last-trade prices, NO bid/ask) from Binance BTCUSDT SPOT, 1-minute, UTC,
-            stamped at the bar's OPEN time, so a bar stamped T is knowable only at T + 60 s (use it from the NEXT
-            bar). Open-time stamping is INFERRED from month boundaries (every full month runs 00:00..23:59), not
-            confirmed against exchange documentation: Step 0 should re-check it.
+PROVENANCE: Per file in MANIFEST.csv (source / type / freq / stamp / knowable). Primary target: Binance SPOT trade-print
+            OHLCV (last-trade prices, NO bid/ask), 1-hour bars, UTC, stamped at the bar OPEN, knowable at open + 1h.
 
-CLEANED?: yes, by clean_btc_spot.py, following finding-alphas\data-skill\tree-reference.md (gates 0-6, 8, 10; gate 7
-          N/A because there are no quotes). NO ROW WAS DROPPED. What the routine must know:
-          - `low` is NaN on 11 bars (source had low = 0.0); `quote` is NaN on 1,550 bars (source had quote = 0).
-          - Missing minutes (32,495, 0.98%, 74% of them in 2017) are LEFT MISSING. `gap_min` = minutes since the
-            previous bar; keep `gap_min == 1` for 1-minute returns.
-          - Flags, never altered: `flag_repeat_prev_bar` (37), `flag_close_outlier` (3), `flag_wick_gt3pct` (47).
-          - 2017 is a thin market (18.9% of bars are flat: open=high=low=close). Treat it with care.
-          - No spread, no cost: ROUND-TRIP COST is UNKNOWN for this file.
+CLEANED?: NO. Raw pulls: no row dropped, gaps LEFT MISSING, nothing filled. Known facts (NOT leads):
+          - Missing hours on Binance spot: 20-128 per coin (exchange outages / maintenance).
+          - spot/bitstamp_BTCUSD 2011-2013: stale feed, up to ~90% zero-volume hours and flat bars.
+          - spot/coinbase_XRPUSD has a delisting gap 2021-01 -> 2023-07.
+          - Zero-gap rate (open == previous close) is 0.3-0.6 on the 1h crypto bars: normal for 24/7 trade prints,
+            not a synthetic-open artifact.
+          - defi/*: vendor-aggregated and BACKFILLED (not point-in-time). onchain/cm_* exchange-flow metrics are
+            revised backwards (not point-in-time). macro/cftc_*: knowable 3 days after the stamp. macro/yahoo_*: lag one
+            session; Yahoo index opens can be synthetic (close-to-close only).
+          - macro/nyfed_rrp `counterparties` is an all-null column.
 
 TRAIN_END: 2023-03-19
 VAL_START: 2023-03-25
 VAL_END:   2023-11-30
-VAL_NOTE:  Two reasons VAL is weak evidence. (1) BTC VAL was crossed twice by arc #047 (both pre-registered) and overlaps a
-           spent pooled row of the 21:00-23:00 UTC seasonality EDA (see _SEALED_HOLDOUT.md): SOFT-clean. (2) VAL is a
-           DIFFERENT REGIME from TRAIN: from 2023-04, median trades per minute fall ~8x (about 3,600 to 450, then
-           240-360) and the share of zero-return bars rises from <0.3% to 4-12% (CLEANING_LOG.md, Gate 4b; cause not
-           established). A lead about trade counts, volume or 1-minute tick behaviour can fail VAL for structural reasons.
+VAL_NOTE:  Two reasons VAL is weak evidence. (1) BTC VAL was crossed twice by earlier work (both pre-registered) and overlaps a
+           spent pooled row of an earlier BTC seasonality EDA: SOFT-clean for BTC; clean for the other nine coins as far as
+           this file knows. (2) VAL may be a DIFFERENT REGIME from TRAIN: from 2023-04 BTC's 1-minute trade counts fell ~8x
+           (cause not established). A lead about trade counts or volume can fail VAL for structural reasons.
 
-HYPOTHESIS: SEARCH
-            (Write SEARCH and the routine finds ONE claim itself on SSRN or Substack, following RUNBOOK step 1. Or write your own
-            claim in the form "a change in [data] predicts [price response] because [economic reason]", optionally with an SSRN or
-            Substack URL or title on a second line.)
+SOURCE_MODE: E
+            (Set by the user's assistant on 2026-09-30, user away: the user asked for the routine to "get to work" on this
+            new dataset; INBOX.md is empty. Mode E = every hypothesis traces to a Phase 0 observation on EXPLORE.)
+
+HYPOTHESIS: none (mode E: hypotheses come from Phase 0 observations only)
 
 ALREADY TESTED (names only, do NOT pick these): BTC hour-of-day seasonality (the 21:00-23:00 UTC window); BTC flow-imbalance and
             positioning / crowd-positioning claims; BTC-dislocation propagation to other coins; short-horizon reversal after taker
-            imbalance. (Topic names only, taken from the holdout file; no results. Edit freely.)
+            imbalance. (Topic names only; no results.)
 
-PRE-APPROVED INSTALLS: none   (14c says ask before heavy dependencies; the routine cannot ask, so with "none" it installs
-                              nothing. To pre-approve, list packages here, e.g. "pymc, arviz", and they go only into
-                              C:\Users\User\eda-routine\.venv.)
+PRE-APPROVED INSTALLS: pandas, pyarrow, numpy, scipy, statsmodels, matplotlib   (into /home/user/eda-routine/.venv only)
 
-ROUND-TRIP COST (bp): <blank: cost unknown>
+ROUND-TRIP COST (bp): per coin = spot/binance_<COIN> columns `ftmo_spread_rt_bp` + `ftmo_commission_rt_bp` (6.5). FTMO CFD
+            costs, one live sample 2026-09-02, constant (not a history): BTC 6.6, BNB 6.6, ETH 9.0, SOL 9.5, DOGE 17.5,
+            XRP 17.6, ADA 21.6, BCH 31.0, DOT 31.9, LTC 36.5. Holding past the daily rollover adds ~8.2 bp per night on every
+            coin (-30%/yr swap, both sides, triple on Friday), so horizons that cross a rollover pay it.
 
-NOTES: This is the routine's first test. Read the report against CLEANING_LOG.md: the routine should NOT re-discover the
-       cleaning findings as "leads" (missing minutes, the zero-quote block, the 2017 flat bars, the regime break).
-       Other prepared copies sit in data\ (btcusdtperp_5m, btcusdtperp_1m, btcusdt_spot_1m, btcusdt_spot_monthly). They
-       are RAW and TRAIN-only or uncleaned: do not use them as the target.
+NOTES: CLOUD RUN. Map every C:\Users\User\<x> path in RUNBOOK_v3.md to /home/user/<x> (backslashes to slashes).
+       Scope Phase 0 to the PRIMARY TARGET panel first (10 coins, 1h); profile the other families only for coverage,
+       knowability and alignment, not as 224 separate studies.
+       There is no eda_guard.py in this checkout: implement the guard as an assertion at every load that no row is later
+       than VAL_END, and log it.
+       READ-ONLY method files outside this repo, and ONLY these: backtest_engine/backtest_engine2/PROTOCOL.md,
+       skills/00-overview.md, skills/12-alpha-overview.md, skills/14c-eda.md, cellplot.py, data_hygiene.py;
+       finding-alphas/data-hygiene.md. Never open anything else in finding-alphas or backtest_engine (no alpha_log.md, no
+       hunts/, no notebooks, no data/, no _SEALED_HOLDOUT.md, no x0* files).

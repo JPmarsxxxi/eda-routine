@@ -11,10 +11,11 @@ STOPPED.md (a stopped run did not complete, so it does not count toward balancin
 | B | Papers (INBOX.md §B) | 0 |
 | C | Paper groups (INBOX.md §C) | 0 |
 | D | Lens (finding-alphas\lenses\) | 0 |
-| E | Data (Phase 0 observations only) | 0 |
+| E | Data (Phase 0 observations only) | 1 |
 
 ## Log (one row per completed session, newest last)
 
 <!-- appended by the routine, one line per DONE session:
 YYYY-MM-DD  mode  run folder
 -->
+2026-09-30  E  runs/2026-09-30_crypto-panel-1h
