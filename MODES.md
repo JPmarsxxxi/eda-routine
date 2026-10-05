@@ -8,7 +8,7 @@ STOPPED.md (a stopped run did not complete, so it does not count toward balancin
 | mode | what it is | completed sessions |
 |---|---|---|
 | A | Ideas (INBOX.md §A) | 0 |
-| B | Papers (INBOX.md §B) | 0 |
+| B | Papers (INBOX.md §B) | 1 |
 | C | Paper groups (INBOX.md §C) | 0 |
 | D | Lens (finding-alphas\lenses\) | 0 |
 | E | Data (Phase 0 observations only) | 2 |
@@ -20,3 +20,4 @@ YYYY-MM-DD  mode  run folder
 -->
 2026-09-30  E  runs/2026-09-30_crypto-panel-1h
 2026-10-05  E  runs/2026-10-05_crypto-validated-1h
+2026-10-05  B  runs/2026-10-05_crypto-101alphas

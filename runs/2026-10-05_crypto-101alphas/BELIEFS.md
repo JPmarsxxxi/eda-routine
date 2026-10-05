@@ -22,12 +22,13 @@ born_on: SOURCE Kakushadze 2015 101 Formulaic Alphas
 seen_on: none
 prior: 0.16
 anchor: 0.3 x 0.175 (base rate) + 0.7 x 0.15 (mechanism: crypto cross-sectional momentum is documented at weekly horizons in large cross-sections, e.g. Liu-Tsyvinski-Wu 2022, but 1-day continuation in 10 large, 0.78-correlated coins at >= 20 bp/day is ambitious; Obs 6 shows short-lag reversal, not continuation) = 0.0525 + 0.105 = 0.1575 -> 0.16
-posterior: 0.863
+posterior: 0.852
 state: HIGH-CONFIRM
 evidence:
 - cell_01: C1 supported weight=10.0 capped=yes -> posterior 0.656
 - cell_02: EXPLORE inconclusive weight=1.0 capped=no -> posterior 0.656
 - cell_08: C2 supported weight=3.311 capped=no -> posterior 0.863
+- cell_28: VAL refuted weight=0.914 capped=no -> posterior 0.852
 
 ## H2 — Alpha#42 vwap-close delay-0 reversal
 parent: none

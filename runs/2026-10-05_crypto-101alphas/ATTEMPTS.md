@@ -29,3 +29,10 @@
 | 25 | H3 | C2 | redirect | 16 pointer sorts (see result) | none clears the bar | (redirect, weight 1) | 25 |
 | 26 | H5 | C1 | test | A4 top-minus-bottom half spread | -4.7 bp/day, t -0.05, n 92 | inconclusive | 26 |
 | 27 | H5 | C2 | test | A4 top-minus-bottom half spread | -2.3 bp/day, t -0.04, n 84 | inconclusive | 27 |
+| 28 | H1 | VAL | val | A101 top-minus-bottom half spread | +4.7 bp/day, t +0.53, n 213 | refuted | 28 |
+
+**K (for downstream DSR deflation).** Hypothesis slice openings: 19 test cells + 1 VAL = **20**; including the 8 redirect
+cells (each ~15 pointer sorts on an already-opened or EXPLORE slice) as looks: **28 cells, ~140 sorts**. Not hypothesis tests,
+but looks at returns that should be known to a deflation step: three NULL noise calibrations (random half splits, no alpha) on
+C1 (after cell_01, D14), C2 (after cell_08, D15) and C3 (after cell_15, D17), and the Phase-0 EXPLORE profile.
+Process deviation: cell_10 was not the top pick (DECISIONS D16).
