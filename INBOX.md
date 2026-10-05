@@ -23,6 +23,7 @@ available. A used item is left in place, not deleted, so the record of what's be
 - https://papers.ssrn.com/sol3/papers.cfm?abstract_id=XXXXXXX
 - C:\Users\User\finding-alphas\lenses\_material\some_paper.pdf
 -->
+- C:\Users\User\eda-routine\1601.00991v3.pdf   (Kakushadze, "101 Formulaic Alphas", 2015; user picks 5 for crypto, see TARGET.md)
 
 ## C. Paper groups — a name, then its papers indented under it, read together as one session's source
 

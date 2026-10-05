@@ -6,9 +6,9 @@ Edit this file, then set STATUS to READY and click "Run now" on the routine. The
 DATA MUST BE PREPARED FIRST: `python C:\Users\User\eda-routine\prep_target.py <source> <name>` writes a copy that
 STOPS at the end of VAL (TEST and sealed rows are never copied). Point DATA at that copy, never at the source.
 
-STATUS: DONE runs/2026-10-05_crypto-validated-1h
+STATUS: READY
 
-NAME: crypto-validated-1h
+NAME: crypto-101alphas
 
 DATA: /home/user/eda-routine/data/crypto_panel_validated_2026-10-05/   (cloud session; on the desktop this is
       C:\Users\User\eda-routine\data\crypto_panel_validated_2026-10-05\). Read README.md, MANIFEST.csv and CUT.json there FIRST.
@@ -47,19 +47,33 @@ VAL_NOTE:  VAL is weak evidence. (1) BTC VAL was crossed twice by earlier work a
            rebound topic (see ALREADY TESTED): SOFT-clean for every coin for that topic. (3) VAL may be a DIFFERENT REGIME from
            TRAIN (2023 was calm; from 2023-04 BTC's 1-minute trade counts fell ~8x, cause not established).
 
-SOURCE_MODE: E
-            (Set by the user's assistant on 2026-10-05, user away: the user asked to "launch EDA on the bundle" after merging
-            the auxiliary data with the new validated prices. Mode E = every hypothesis traces to a Phase 0 observation on
-            EXPLORE.)
+SOURCE_MODE: B
+            (Set by the user's assistant on 2026-10-05 at the user's request: "pick about 5 [alphas] that would apply to crypto
+            and EDA them". Paper = INBOX.md section B entry 1601.00991v3.pdf, local file in this repo root.)
 
-HYPOTHESIS: none (mode E: hypotheses come from Phase 0 observations only)
+HYPOTHESIS: The user asked for these FIVE alphas from the paper (Appendix A), chosen because they need only OHLCV + vwap (no
+            industry neutralisation, no market cap) and do not repeat an ALREADY TESTED topic. Phase 1 = exactly these five, one
+            candidate each (the 6-candidate cap still holds). Formulas verbatim from the paper:
+            - Alpha#101: ((close - open) / ((high - low) + .001))        paper: delay-1 MOMENTUM (close > open -> long next day)
+            - Alpha#42:  (rank((vwap - close)) / rank((vwap + close)))   paper: delay-0 MEAN-REVERSION, traded at the close
+            - Alpha#2:   (-1 * correlation(rank(delta(log(volume), 2)), rank(((close - open) / open)), 6))
+            - Alpha#6:   (-1 * correlation(open, volume, 10))
+            - Alpha#4:   (-1 * Ts_Rank(rank(low), 9))
+            Operators: paper Appendix A.1 (rank = cross-sectional over the 10 coins; correlation/ts_rank = time-series over the past
+            d DAYS). Translation to crypto (24/7): a "day" = one UTC calendar day built from the 1h bars of spot/binance_<COIN>
+            (open = first hour's open, high/low = max/min, close = last hour's close, volume = sum of vol, vwap = sum(quote_vol) /
+            sum(vol)). The SIGNAL uses those raw Binance daily OHLCV; the RESPONSE (forward return) uses primary/validated_<COIN>
+            `price` only. delay-1 alphas: signal from day d, return from end of day d to end of day d+1 (00:00 UTC to 00:00 UTC).
+            delay-0 (Alpha#42): same response window, and note that in crypto "the close" of day d is the open of day d+1.
+            The paper's sample is US equities 2010-2013 (pre-dates VAL; no holdout flag).
 
 ALREADY TESTED (names only, do NOT pick these): BTC hour-of-day seasonality (the 21:00-23:00 UTC window); BTC flow-imbalance and
             positioning / crowd-positioning claims; BTC-dislocation propagation to other coins; short-horizon reversal after taker
             imbalance; and the previous run on this panel (runs/2026-09-30_crypto-panel-1h — do NOT open that folder):
             daily time-series reversal; reversal after panel volume-shock days; same-hour-yesterday 1h reversal; high-volume
             relative winners continue; intraday 6h-block reversal; 6h reversal in high trailing vol; crash-day rebound (and a
-            volatility-regime filter on it). (Topic names only; no results.)
+            volatility-regime filter on it); and runs/2026-10-05_crypto-validated-1h (do NOT open it either): perp premium cross-section,
+            Fear & Greed level, prior-session S&P 500 return. (Topic names only; no results.)
 
 PRE-APPROVED INSTALLS: pandas, pyarrow, numpy, scipy, statsmodels, matplotlib   (into /home/user/eda-routine/.venv only)
 
@@ -71,8 +85,8 @@ ROUND-TRIP COST (bp): MEASURED FTMO CFD costs (spread at the trade minute from F
 NOTES: CLOUD RUN. Map every C:\Users\User\<x> path in RUNBOOK_v3.md to /home/user/<x> (backslashes to slashes).
        Follow RUNBOOK_v3.md (v3.1: several CONFIRM folds, enforced by gate.py). Run gate.py as the runbook says.
        Scope Phase 0 to the PRIMARY TARGET panel first (10 coins, 1h); profile the other families only for coverage,
-       knowability and alignment, not as 234 separate studies. The explanatory families are the point of this run: the
-       previous run on this panel used mostly prices and volume.
+       knowability and alignment, not as 234 separate studies. This run needs only primary/ and spot/binance_*; the other
+       families matter only as rivals (e.g. a volatility or market-wide twin).
        There is no eda_guard.py in this checkout: implement the guard as an assertion at every load that no row is later
        than VAL_END, and log it.
        READ-ONLY method files outside this repo, and ONLY these: backtest_engine/backtest_engine2/PROTOCOL.md,
