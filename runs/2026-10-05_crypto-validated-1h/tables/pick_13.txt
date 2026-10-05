@@ -1,0 +1,4 @@
+H3 on C1: prior 0.060, power 0.227, expected |shift| = 2.0 pp
+    P(supported)=0.060x0.227+0.940x0.052=0.062, w=4.538 -> post 0.225, |shift| 0.165
+    P(inconclusive)=0.060x0.000+0.940x0.000=0.000, w=1.000 -> post 0.060, |shift| 0.000
+    P(refuted)=0.060x0.773+0.940x0.948=0.938, w=0.814 -> post 0.049, |shift| 0.011

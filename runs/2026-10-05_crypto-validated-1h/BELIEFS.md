@@ -43,13 +43,15 @@ born_on: EXPLORE #5
 seen_on: none
 prior: 0.12
 anchor: recipe above with s=0.5 (weak story, strong price-momentum impostor), z=0.5 (EXPLORE half-spread 42 bp vs ~44.5 bp 24h panel cost: at the bar): 0.5 x 0.488 x 0.5 = 0.122 -> 0.12
-posterior: 0.077
+posterior: 0.059
 state: OPEN
 evidence:
 - cell_07: C1 refuted weight=0.759 capped=no -> posterior 0.094
 - cell_08: C1 redirect weight=1 capped=no -> posterior 0.094 (absent everywhere; no child)
 - cell_09: C2 refuted weight=0.804 capped=no -> posterior 0.077
 - cell_10: C2 redirect weight=1 capped=no -> posterior 0.077 (absent everywhere; no child)
+- cell_11: C3 refuted weight=0.748 capped=no -> posterior 0.059
+- cell_12: C3 redirect weight=1 capped=no -> posterior 0.059 (absent everywhere; no child)
 
 ## H3 — Prior-session S&P 500 return predicts the next-day panel return (risk-on spillover)
 parent: none
@@ -62,7 +64,8 @@ born_on: EXPLORE #6
 seen_on: none
 prior: 0.06
 anchor: recipe above with s=0.5 (weak story: a full extra session of lag should already be priced), z=0.25 (EXPLORE half-spread 18 bp vs ~44.5 bp cost: below the bar): 0.5 x 0.488 x 0.25 = 0.061 -> 0.06
-posterior: 0.06
-state: OPEN
+posterior: 0.049
+state: LOW
 evidence:
-- (none yet)
+- cell_13: C1 refuted weight=0.814 capped=no -> posterior 0.049
+- cell_14: C1 redirect weight=1 capped=no -> posterior 0.049 (absent everywhere; no child)

@@ -13,3 +13,7 @@
 | 8 | 2026-10-05 12:44 | cell_08 | H2 | C1 (already opened) | redirect | 5 looks: none |t|>=2.5 | inconclusive (redirect) | 59 |
 | 9 | 2026-10-05 12:44 | cell_09 | H2 | C2 | test | spread +40.9 bp, t +0.41, n 145 | refuted | 60 |
 | 10 | 2026-10-05 12:45 | cell_10 | H2 | C2 (already opened) | redirect | 5 looks: none qualify | inconclusive (redirect) | 65 |
+| 11 | 2026-10-05 12:45 | cell_11 | H2 | C3 | test | spread -22.9 bp, t -0.39, n 213 | refuted | 66 |
+| 12 | 2026-10-05 12:46 | cell_12 | H2 | C3 (already opened) | redirect | 5 looks: none qualify | inconclusive (redirect) | 71 |
+| 13 | 2026-10-05 12:46 | cell_13 | H3 | C1 | test | spread -146.4 bp, t -1.77, n 122 | refuted | 72 |
+| 14 | 2026-10-05 12:46 | cell_14 | H3 | C1 (already opened) | redirect | 5 looks: none qualify (R5 BTC -144 bp t -2.11 opposite sign) | inconclusive (redirect) | 77 |
