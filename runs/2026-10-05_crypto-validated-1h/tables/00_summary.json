@@ -1,0 +1,35 @@
+{
+ "max_pair_corr": [
+  "('BCHUSD', 'LTCUSD')",
+  "0.87"
+ ],
+ "mean_pair_corr": 0.5531111111111111,
+ "screen_K": 30,
+ "screen_flags": 5,
+ "impostor_premium": {
+  "mean": {
+   "c_prem_fund": 0.701,
+   "c_prem_past3": -0.014,
+   "ic_past3": 0.017,
+   "ic_prem": -0.116,
+   "ic_prem_resid": -0.111
+  },
+  "t": {
+   "c_prem_fund": 29.436,
+   "c_prem_past3": -0.434,
+   "ic_past3": 0.518,
+   "ic_prem": -3.719,
+   "ic_prem_resid": -3.846
+  },
+  "n": {
+   "c_prem_fund": 148,
+   "c_prem_past3": 154,
+   "ic_past3": 154,
+   "ic_prem": 154,
+   "ic_prem_resid": 154
+  }
+ },
+ "intraday_absr_max_min": 1.5185011312997838,
+ "intraday_qvol_max_min": 1.8688194479978981,
+ "weekly_absr_max_min": 1.1812224592870444
+}
