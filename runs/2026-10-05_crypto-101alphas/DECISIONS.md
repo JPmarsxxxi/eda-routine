@@ -73,3 +73,50 @@ pointer clears its pre-registered bar; "absent everywhere" is recorded as the re
 runs after the FIRST refutation of a hypothesis and again only if a later refutation drops it to LOW and the later slice
 adds a new place to look (DEFAULT to keep the session inside its cap; RUNBOOK says a redirect follows a refutation of a
 sub-claim the hypothesis cannot survive without — here every fold test is the same single sub-claim).
+
+**D14 — Power simulation re-calibrated after cell_01 (written before cell_02's rule; needs human review).** cell_01 (H1 on
+C1) realised a Newey-West SE of 32.7 bp for the mean spread; the Phase-1 power simulation (EXPLORE residual pool) assumed
+~8.1 bp at noise x1.0 and ~12 bp at x1.5. A NULL calibration on C1 (already opened by cell_01; random half splits of C1's
+own next-day returns, no alpha; code/p2_noise_c1.py) gives a median SE of 31.0 bp = **3.83 x** the EXPLORE-pool simulation:
+the 2020-21 cross-section (alt season, more coins) is far more dispersed than 2019 - May 2020. Consequences:
+(1) cell_01's PRE-REGISTERED weight (supported 10.0, capped from 12.7) stands — gate.py and RUNBOOK forbid editing a result
+to change it — but it is OVERSTATED: at the realised noise the same rule has power ~0.16 / alpha 0.05, i.e. a supported
+weight ~3.2. H1's posterior after cell_01 (0.656) is therefore too high by roughly that factor in odds (~0.37 at the honest
+weight). Flagged in REPORT.md. (2) DEFAULT for every rule file from cell_02 on: power and alpha come from code/power_v2.json
+= the same rule evaluated on a normal sampling distribution of the mean spread with SE = (EXPLORE-pool simulated SE at the
+slice's size) x (noise scale), noise scale = 1.5 for EXPLORE (its own pool, as before) and the largest measured fold ratio
+(3.83, C1) for every CONFIRM fold (C2/C3 not measured — they are unopened; assumed like C1). This is the conservative
+direction: lower power -> smaller supported AND closer-to-1 refuted weights. The noise scale only rises if a later opened fold
+shows a larger null ratio. (3) The C1 null calibration is a look at C1 returns without any alpha; it is logged in
+ACCESS_LOG.md and noted in ATTEMPTS.md but is not a hypothesis test.
+
+**D15 — Fold-specific noise once a fold has been measured (written before cell_09's rule).** cell_08 (H1 on C2) realised SE
+10.8 bp where D14 assumed 30.4 bp: C1's noise (2020-21, incl. the DOGE/alt mania of Jan-May 2021) is not typical. A null
+calibration on C2 (already opened by cell_08; random splits, no alpha; code/p2_noise_c2.py — its output key says
+`C1_random_split_se` by a copy slip, the value is C2's) gives 11.6 bp = 1.47 x the EXPLORE-pool simulation. DEFAULT from
+cell_09 on (code/power_v3.json, same normal-sampling method as D14): noise scale = the MEASURED null ratio for a fold that has
+been opened and calibrated (C1 3.83, C2 1.47), and the LARGEST measured ratio (3.83) for a fold nobody has opened (C3);
+EXPLORE stays x1.5. Keeping C2 at 3.83 would understate C2's power ~3x and make S2 ("beliefs settled") fire on an
+artefact of the noise assumption; using the measured value is the accurate choice, and C3 stays on the conservative side.
+Cells 01-08 keep the weights their rule files fixed (cell_08's weight is conservative, cell_01's is overstated: D14).
+
+**D16 — Process deviation in cell_10 (operator error, disclosed).** After cell_09 the pick table (code/pick_10.md, also
+pasted in cell_10_rule.md) ranked **H6 on C2 first at 7.92 pp**; cell_10 nevertheless ran **H4 on C1 (1.22 pp)** because the
+pick was chosen before the refreshed table was read. RUNBOOK_v3 step 1 says to run the largest expected shift. The cell
+itself was pre-registered (rule before result, H4's lowest admissible fold, no slice rule broken) and its result stands
+(changing it would be worse), but it was not the optimal pick. Consequences: K is one higher than a strict run would have
+reached at this point, and the S2 counter is reset (the best pick before cell_10 was 7.92 pp > 3 pp). Next cells return to
+the pick order (H6 on C2 next).
+
+**D17 — C3 measured; redirects after every refutation (written before cell_17's rule).** (1) cell_15 opened C3 (H4). Per D15,
+a null calibration on C3 (code/p2_noise_c3.py; random splits, no alpha) gives 9.4 bp = 1.15 x the EXPLORE-pool simulation, so
+from cell_17 on C3 uses its measured ratio (code/power_v4.json; C1 3.83, C2 1.47, C3 1.15, EXPLORE x1.5). (2) D13's second
+clause is relaxed: a redirect cell now follows EVERY refutation while the 30-cell budget allows (cell_16 is H4's second
+redirect, on C3), which is closer to RUNBOOK_v3 step 8 than D13 was.
+
+**D18 — H7's seen_on (EXPLORE, C1, C2).** H7's defining statistic is the flipped #42 spread at h = 2. Exactly that number was
+displayed on EXPLORE (redirect cell_04, P2 flipped h=2: +9.8 bp/day, t 1.0). On C1 and C2 its first half — the flipped h=1
+spread — was displayed by H2's own tests (cell_19: -32.8 flipped; cell_20: +0.4 flipped). The h=2 average shares day d+1
+with h=1, so a test of H7 on C1/C2 would re-read a number already on screen. DEFAULT (conservative): seen_on = EXPLORE, C1,
+C2, so H7 has NO admissible TRAIN slice; it is reported as a lead needing a fresh slice (TEST is the user's call). It is not
+spawned to close slices: no other hypothesis's admissibility depends on it.

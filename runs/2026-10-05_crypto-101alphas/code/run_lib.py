@@ -124,12 +124,15 @@ def build_panel(purpose, window, lookback_days=40, coins=COINS):
     resp = {}
     for c in coins:
         b = load_binance(c, purpose + " (signal inputs, incl. lookback buffer)", sig_win)
+        if len(b) == 0:
+            continue
         db = daily_bars(b)
         for k in fields:
             fields[k][c] = db[k]
         pr = load_primary(c, purpose + " (response)", window)
         resp[c] = daily_response(pr) if len(pr) else pd.Series(dtype=float)
     out = {k: pd.DataFrame(v) for k, v in fields.items()}
+    resp = {c: v for c, v in resp.items() if c in out["close"].columns}
     R = pd.DataFrame(resp).reindex(out["close"].index)
     # response must END inside the window: signal day d needs d+2 00:00 <= window end
     keep = (R.index >= window[0]) & (R.index + pd.Timedelta(days=2) <= window[1])
@@ -168,6 +171,8 @@ def alpha(name, P):
         return -1 * ts_corr(o, v, 10)
     if name == "A4":
         return -1 * ts_rank(cs_rank(l), 9)
+    if name == "A2RAWPOS":   # H6 (child of H3, redirect cell_06 pointer P4 flipped)
+        return ts_corr(delta(np.log(v), 2), (c - o) / o, 6)
     raise KeyError(name)
 
 

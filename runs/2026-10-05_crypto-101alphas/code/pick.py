@@ -15,8 +15,8 @@ for f in sorted(glob.glob(os.path.join(L.RUN, "cells", "cell_*_rule.md"))):
     kv = dict(re.findall(r"(?m)^([a-z_]+):\s*(.*)$", open(f).read()))
     if kv.get("kind") == "test" and kv.get("hypothesis") in opened:
         opened[kv["hypothesis"]].append(kv["slice"])
-PW = json.load(open(os.path.join(L.RUN, "code", "power.json")))
-PW5 = json.load(open(os.path.join(L.RUN, "code", "power_h5.json")))
+PW = json.load(open(os.path.join(L.RUN, "code", "power_v4.json")))["all"]
+PW5 = json.load(open(os.path.join(L.RUN, "code", "power_v4.json")))["H5"]
 rows = []
 for h, kv in E.items():
     if kv["state"] not in ("OPEN", "HIGH"):

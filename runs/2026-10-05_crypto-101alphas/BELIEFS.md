@@ -22,9 +22,12 @@ born_on: SOURCE Kakushadze 2015 101 Formulaic Alphas
 seen_on: none
 prior: 0.16
 anchor: 0.3 x 0.175 (base rate) + 0.7 x 0.15 (mechanism: crypto cross-sectional momentum is documented at weekly horizons in large cross-sections, e.g. Liu-Tsyvinski-Wu 2022, but 1-day continuation in 10 large, 0.78-correlated coins at >= 20 bp/day is ambitious; Obs 6 shows short-lag reversal, not continuation) = 0.0525 + 0.105 = 0.1575 -> 0.16
-posterior: 0.16
-state: OPEN
+posterior: 0.863
+state: HIGH-CONFIRM
 evidence:
+- cell_01: C1 supported weight=10.0 capped=yes -> posterior 0.656
+- cell_02: EXPLORE inconclusive weight=1.0 capped=no -> posterior 0.656
+- cell_08: C2 supported weight=3.311 capped=no -> posterior 0.863
 
 ## H2 — Alpha#42 vwap-close delay-0 reversal
 parent: none
@@ -37,9 +40,15 @@ born_on: SOURCE Kakushadze 2015 101 Formulaic Alphas
 seen_on: none
 prior: 0.11
 anchor: 0.3 x 0.175 (base rate) + 0.7 x 0.08 (mechanism: the delay-0 "contrarian at the close" premise needs a closing auction; 24:00 UTC is the quietest hour (Obs 8) and the verbatim ranks are price-level dominated (Obs 5, D2)) = 0.0525 + 0.056 = 0.1085 -> 0.11
-posterior: 0.11
-state: OPEN
+posterior: 0.035
+state: LOW
 evidence:
+- cell_03: EXPLORE refuted weight=0.569 capped=no -> posterior 0.066
+- cell_04: EXPLORE redirect weight=1.0 capped=no -> posterior 0.066
+- cell_19: C1 inconclusive weight=1.0 capped=no -> posterior 0.066
+- cell_20: C2 inconclusive weight=1.0 capped=no -> posterior 0.066
+- cell_21: C3 refuted weight=0.51 capped=no -> posterior 0.035
+- cell_22: C3 redirect weight=1.0 capped=no -> posterior 0.035
 
 ## H3 — Alpha#2 volume-change vs intraday-return correlation
 parent: none
@@ -52,9 +61,14 @@ born_on: SOURCE Kakushadze 2015 101 Formulaic Alphas
 seen_on: none
 prior: 0.11
 anchor: 0.3 x 0.175 (base rate) + 0.7 x 0.08 (mechanism: a plausible flow-overshoot story, but a 6-day correlation of two ranks over 5-10 coins is a very noisy estimator, and volume/return links in crypto are dominated by the common factor, Obs 2) = 0.0525 + 0.056 = 0.1085 -> 0.11
-posterior: 0.11
-state: OPEN
+posterior: 0.036
+state: LOW
 evidence:
+- cell_05: EXPLORE refuted weight=0.569 capped=no -> posterior 0.066
+- cell_06: EXPLORE redirect weight=1.0 capped=no -> posterior 0.066
+- cell_23: C1 inconclusive weight=1.0 capped=no -> posterior 0.066
+- cell_24: C2 refuted weight=0.524 capped=no -> posterior 0.036
+- cell_25: C2 redirect weight=1.0 capped=no -> posterior 0.036
 
 ## H4 — Alpha#6 open-volume correlation
 parent: none
@@ -67,9 +81,16 @@ born_on: SOURCE Kakushadze 2015 101 Formulaic Alphas
 seen_on: none
 prior: 0.11
 anchor: 0.3 x 0.175 (base rate) + 0.7 x 0.08 (mechanism: attention-run reversal is plausible in crypto, but a 10-day level-vs-volume correlation mostly reflects the shared trend, Obs 2) = 0.0525 + 0.056 = 0.1085 -> 0.11
-posterior: 0.11
+posterior: 0.079
 state: OPEN
 evidence:
+- cell_07: EXPLORE inconclusive weight=1.0 capped=no -> posterior 0.110
+- cell_10: C1 refuted weight=0.886 capped=no -> posterior 0.099
+- cell_10: C1 refuted weight=0.886 capped=no -> posterior 0.088
+- cell_11: C1 redirect weight=1.0 capped=no -> posterior 0.088
+- cell_14: C2 inconclusive weight=1.0 capped=no -> posterior 0.088
+- cell_15: C3 refuted weight=0.888 capped=no -> posterior 0.079
+- cell_16: C3 redirect weight=1.0 capped=no -> posterior 0.079
 
 ## H5 — Alpha#4 time-series rank of the cross-sectional rank of low
 parent: none
@@ -82,6 +103,45 @@ born_on: SOURCE Kakushadze 2015 101 Formulaic Alphas
 seen_on: none
 prior: 0.09
 anchor: 0.3 x 0.175 (base rate) + 0.7 x 0.05 (mechanism: the relative-overbought story is fine in equities with thousands of price-level crossings, but in 10 coins the input is static on >= 75% of days (Obs 5), leaving almost nothing to predict with) = 0.0525 + 0.035 = 0.0875 -> 0.09
+posterior: 0.090
+state: OPEN
+evidence:
+- cell_26: C1 inconclusive weight=1.0 capped=no -> posterior 0.090
+- cell_27: C2 inconclusive weight=1.0 capped=no -> posterior 0.090
+
+## H6 — raw volume-change/return co-movement continues (child of H3, from redirect cell_06)
+parent: H3
+source: cells/cell_06_result.md pointer P4 (flipped): +correlation(delta(log(volume), 2), (close - open)/open, 6) on raw values, EXPLORE mean +29.5 bp/day, t 3.06
+question: Do coins whose daily returns have recently co-moved positively with their own volume changes (raw, unranked) out-earn the others the next day, at >= 20 bp/day?
+hypothesis: a change in the 6-day per-coin correlation between Binance delta(log(volume), 2) and (close - open)/open (raw values, not cross-sectional ranks) predicts the cross-sectional rank of the next-day primary `price` return with a POSITIVE sign of +correlation because returns that arrive with rising volume are information-driven and continue, while returns on falling volume are liquidity/hedging moves that reverse (Llorente-Michaely-Saar-Wang 2002 volume-return mechanism), the opposite of Alpha#2's sign.
+forbids: on a CONFIRM fold with its own pre-registered rule, a top-minus-bottom spread (by +corr) whose one-sided 95% upper bound is below 20 bp/day without a significant positive effect (refuted); we would NOT see high-co-movement coins underperform low-co-movement coins on the folds.
+rivals: selection artefact (the largest |t| of ~15 redirect pointers; a noise pointer clears |t| >= 2.5 with probability ~10% per redirect); volatility twin (raw correlations are dominated by the high-vol coins whose return and volume swings are largest, Obs 6); 2019H1 vs 2020H1 regime (Obs 7: correlation regime break inside EXPLORE).
+born_on: EXPLORE cell_06
+seen_on: none
+prior: 0.14
+anchor: 0.3 x 0.175 (base rate, as H1-H5) + 0.7 x 0.12 (mechanism: LMSW 2002 is a documented equity mechanism for volume-confirmed continuation; discounted for being the max of ~15 redirect pointers on one slice and for running against the paper's sign) = 0.0525 + 0.084 = 0.1365 -> 0.14
+posterior: 0.042
+state: LOW
+evidence:
+- cell_09: C1 inconclusive weight=1.0 capped=no -> posterior 0.140
+- cell_09: C1 inconclusive weight=1.0 capped=no -> posterior 0.140
+- cell_12: C2 refuted weight=0.524 capped=no -> posterior 0.079
+- cell_13: C2 redirect weight=1.0 capped=no -> posterior 0.079
+- cell_17: C3 refuted weight=0.51 capped=no -> posterior 0.042
+- cell_18: C3 redirect weight=1.0 capped=no -> posterior 0.042
+
+## H7 — flipped Alpha#42 over a 2-day horizon (child of H2, from redirect cell_22)
+parent: H2
+source: cells/cell_22_result.md pointer P2 (flipped, h=2): -#42 top-minus-bottom, average daily return over d+1..d+2, C3 mean +35.6 bp/day, t 2.99
+question: Do coins that close ABOVE their day's vwap relative to the others (low #42) out-earn the others over the next two days, at >= 20 bp/day?
+hypothesis: a change in -1 x rank(vwap - close)/rank(vwap + close) from Binance daily vwap and close predicts the cross-sectional rank of the average daily primary `price` return over the next two days (end of d -> end of d+2) with a positive sign because late-day strength above the day's average traded price reflects informed buying that is absorbed over more than one day (intraday-to-next-days momentum), the opposite of the paper's delay-0 reversal.
+forbids: on a fresh slice with its own pre-registered rule, a 2-day top-minus-bottom spread (by -#42) whose one-sided 95% upper bound is below 20 bp/day without a significant positive effect; we would NOT see high-(-#42) coins underperform over d+1..d+2.
+rivals: price-level sort (D2/Obs 5: #42's denominator is the price-level rank, so -#42 partly sorts cheap vs expensive coins — a size effect in the 2022-23 bear market); regime (C3 = 2022 bear + FTX, the only fold where it appears; h=1 flipped was -32.8 bp/day on C1 and ~0 on C2); selection (largest |t| of ~15 redirect pointers; h = 2, 3, 5 all point the same way, so they are one pointer, not three).
+born_on: C3 cell_22
+seen_on: EXPLORE, C1, C2
+prior: 0.09
+anchor: 0.3 x 0.175 (base rate) + 0.7 x 0.06 (mechanism: intraday-to-next-day momentum is documented in equities (e.g. Gao-Han-Li-Zhou 2018 intraday momentum) but runs against the paper's sign, appears on one fold only, and is the max of ~15 pointers) = 0.0525 + 0.042 = 0.0945 -> 0.09
 posterior: 0.09
 state: OPEN
 evidence:
+

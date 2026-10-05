@@ -8,14 +8,13 @@ sys.path.insert(0, os.path.dirname(__file__))
 import numpy as np, pandas as pd
 import run_lib as L
 NN, H, SL = int(sys.argv[1]), sys.argv[2], sys.argv[3]
-ALPHA = {"H1": "A101", "H2": "A42", "H3": "A2", "H4": "A6", "H5": "A4"}[H]
+ALPHA = {"H1": "A101", "H2": "A42", "H3": "A2", "H4": "A6", "H5": "A4", "H6": "A2RAWPOS"}[H]
 rule = os.path.join(L.RUN, "cells", f"cell_{NN:02d}_rule.md"); ann = os.path.join(L.RUN, "cells", f"cell_{NN:02d}_announce.md")
 assert os.path.exists(rule) and os.path.exists(ann), "rule and announcement must be written before the cell runs"
 head = open(rule).read()
 assert f"hypothesis: {H}" in head and f"slice: {SL}" in head and "kind: test" in head, "rule header does not match"
-w = json.load(open(os.path.join(L.RUN, "code", "power.json")))[SL]["weights"]
-if H == "H5":
-    w = json.load(open(os.path.join(L.RUN, "code", "power_h5.json")))[SL]["weights"]
+w = json.load(open(os.path.join(L.RUN, "code", "power_v4.json" if NN >= 17 else "power_v3.json" if NN >= 9 else "power_v2.json" if NN >= 2 else "power.json")))
+w = (w["H5" if H == "H5" else "all"] if NN >= 2 else w)[SL]["weights"]
 S = L.slices(); win = S[SL]
 P = L.build_panel(f"cell_{NN:02d} {H} {ALPHA} test on {SL}", win)
 sig = L.alpha(ALPHA, P)
