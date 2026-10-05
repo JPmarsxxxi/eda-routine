@@ -1,0 +1,12 @@
+{
+  "prepared_utc": "2026-10-05T10:17:57+00:00",
+  "name": "crypto_panel_validated_2026-10-05",
+  "cutoff_inclusive_utc": "2023-11-30T23:59:59+00:00",
+  "splits": {
+    "TRAIN_END": "2023-03-19",
+    "VAL_START": "2023-03-25",
+    "VAL_END": "2023-11-30"
+  },
+  "output": "234 files, 6029906 rows",
+  "note": "TEST (2023-12-06 -> 2024-07-31) and everything from 2024-08-01 were NOT copied. Every file was checked: no row after the cutoff. Built 2026-10-05 from crypto_panel_2026-09-30 (224 files, unchanged) plus primary/ (10 validated price files). Every file re-checked at build: no row after the cutoff."
+}
