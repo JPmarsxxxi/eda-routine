@@ -1,4 +1,4 @@
-# EDA RUNBOOK v3: investigative, Bayesian, multi-hypothesis — follow skill 14c-eda.md TO THE LETTER, unattended
+# EDA RUNBOOK v3.2: investigative, Bayesian, multi-hypothesis — follow skill 14c-eda.md TO THE LETTER, unattended
 
 THE METHOD FOR EVERY INDIVIDUAL CLAIM IS STILL C:\Users\User\backtest_engine\backtest_engine2\skills\14c-eda.md. This runbook does
 NOT replace it. v3 wraps 14c in a session that runs many hypotheses instead of one, from a chosen source mode, through a
@@ -9,8 +9,13 @@ Where this runbook, 14c and RUNBOOK.md (v2) seem to differ: 14c wins on method f
 always wins; v3's stop rules and multi-hypothesis rules win over v2 (which stopped at one claim and the first refutation — v3
 supersedes that). RUNBOOK.md (v2) and RUNBOOK_v1_sweep.md are kept for reference. Do not follow either.
 
+**v3.2 (2026-10-05) overrides 14c in exactly two places**, both stated where they apply: (1) 14c's "heavy dependency -> stop
+and ask" is replaced by INSTALLS AND METHODS below (installs are allowed, and earned by validation); (2) in modes B/C the
+source's own method is followed as written (METHOD_SPEC.md), even where 14c's menu would pick a different tool. Everything
+else in 14c still wins on method.
+
 READ IN FULL FIRST, in this order:
-  TARGET.md; DESIGN_v3.md; C:\Users\User\backtest_engine\backtest_engine2\PROTOCOL.md; ...\skills\00-overview.md;
+  MEMORY\LEDGER.md, MEMORY\FINDINGS.md, MEMORY\DATA_FACTS.md (see MEMORY below); TARGET.md; DESIGN_v3.md; C:\Users\User\backtest_engine\backtest_engine2\PROTOCOL.md; ...\skills\00-overview.md;
   ...\skills\12-alpha-overview.md; ...\skills\14c-eda.md; C:\Users\User\finding-alphas\data-hygiene.md;
   C:\Users\User\eda-routine\HOLDOUT_RULES.md; INBOX.md; MODES.md (create if absent, see MODE SELECTION below).
 
@@ -18,14 +23,96 @@ UNATTENDED SUBSTITUTIONS (unchanged from v2). Nobody confirms a cell live. Inste
   - "Announce the cell and wait for confirmation" -> write the full 14c Step-3 announcement to cells\cell_NN_announce.md BEFORE
     any code for that cell exists, then proceed.
   - "Decisions I need from you" / "stop and ask" -> write the question and the CONSERVATIVE default in DECISIONS.md and take the
-    default. Heavy dependencies (PyMC, ruptures, deepgraph, ...): DO NOT INSTALL unless TARGET.md's PRE-APPROVED INSTALLS line
-    names them; then install only into C:\Users\User\eda-routine\.venv and log versions.
+    default. **Except installs:** 14c's "stop and ask before a heavy dependency" does not apply when TARGET.md's
+    PRE-APPROVED INSTALLS line reads `any` (the default from v3.2) — follow INSTALLS AND METHODS below instead. If the line
+    names packages, only those; if it reads `none`, nothing.
   - "Confirm net status / confirm the stop" -> write it; a human confirms later.
   - Cannot proceed safely -> write STOPPED.md with the reason, set TARGET.md STATUS to STOPPED <run folder>, end.
 
-SCOPE (14c "What does NOT belong here"), unchanged: EDA only. No backtest, no signal, no PnL. Write only inside the run folder
-(plus INBOX_PROPOSALS.md, see PHASE 3). Never touch alpha_log.md, live strategies, MT5, or the raw data. Never edit INBOX.md or
+SCOPE (14c "What does NOT belong here"), unchanged: EDA only. No backtest, no signal, no PnL. Write only inside the run folder,
+plus `MEMORY\` (PHASE 3 step 4 only), plus `.venv\` (installs). Never touch alpha_log.md, live strategies, MT5, or the raw data. Never edit INBOX.md or
 MODES.md's counts except as this runbook specifies.
+
+---
+
+## INSTALLS AND METHODS (v3.2)
+
+**The aim:** the best tool for the claim, not the tool that happens to be installed. A weak proxy chosen because the right
+library was missing is a defect the judge scores down. A well-chosen, validated tool that sharpens a test is what the
+judge scores up.
+
+**Installs.** With `PRE-APPROVED INSTALLS: any` (the default), install what the claim needs:
+- Only into `C:\Users\User\eda-routine\.venv`. Only from **PyPI or conda-forge**, only packages with a public release
+  history, version **pinned** (`pkg==x.y.z`). No git URLs, no unpublished code, no install scripts from a paper's repo
+  (port the method instead and say so in METHOD_SPEC.md).
+- Before first use, a **validation cell** `cells\install_<pkg>.md` (+ its script): the package must recover a known answer
+  on synthetic data built for the claim (a planted break at a known row, a simulated AR(1) with known phi, a known HMM
+  state path). A tool that fails its validation is not used; say so and fall back.
+- One `INSTALLS.md` row per package, in this table (gate.py parses it):
+
+  ```
+  | import | package | version | source | claim | replaces | adds | validation | result |
+  |---|---|---|---|---|---|---|---|---|
+  | ruptures | ruptures | 1.1.9 | pypi | H2-C8 break date | rolling-mean eyeballing | penalised change-point search with a stated cost | cells/install_ruptures.md | PASS |
+  ```
+- An install no scored cell uses is decoration and the judge marks it down. "Adds" must name what the base stack
+  (numpy/pandas/scipy/statsmodels) cannot do or does worse for THIS claim.
+
+**Method fidelity (modes B and C — the source is a paper).** Before any data is opened for a source claim, write
+`METHOD_SPEC.md`, one `## M<n>` block per method the source uses:
+
+```
+## M1 — <short name>
+source: <paper, section/equation/table>
+estimator: <exactly what is estimated and how inference is done, e.g. Fama-MacBeth, NW(6) t>
+library: <the library/function the paper used or the closest published implementation>
+parameters: <every parameter the paper states: windows, lags, thresholds, rebalancing>
+sample: <the paper's sample construction: frequency, universe filters, skip periods>
+match: <exact | deviation>
+deviation_reason: <none | why this data forces a difference, and what the difference is>
+```
+
+The first test cell of every SOURCE-born hypothesis replicates M<n> **as specified** and carries `method: M<n>` in its
+rule header. If the paper used a specific library, install and use it (INSTALLS above). Where it cannot be matched (a
+proprietary package, data the bundle lacks), the deviation is written down BEFORE the cell runs. Additional variants may
+follow as separate cells, but the replication comes first and is reported first. An exact, validated replication is the
+highest-scoring outcome a mode B/C run can produce, whatever its result.
+
+**The reward — `METHODS_SCORE` (0-3), given by the judge, logged in `MEMORY\LEDGER.md` so runs are compared over time:**
+- **0** — a weaker proxy used where a standard better tool existed, with no stated reason; or an unlisted deviation from a
+  source method; or an install that is decoration.
+- **1** — sound base-stack tools, no gaps, nothing beyond.
+- **2** — at least one validated non-base tool that fits its claim better than the base stack would (and is used in a
+  scored cell); OR (B/C) every source method replicated with all deviations justified.
+- **3** — both of the above, AND the better tool demonstrably mattered: it changed a branch, raised a test's power, or
+  tested a structure (regimes, breaks, non-linearity, conditional effects) the base stack could not.
+
+---
+
+## MEMORY (v3.2) — what the routine remembers across runs, and nothing more
+
+Three files in `C:\Users\User\eda-routine\MEMORY\`, read at the start of every run, appended at Phase 3 step 4 only. Each
+line must earn its place: if a future run would not do something differently because of it, it does not go in.
+
+| file | one entry | budget | used for |
+|---|---|---|---|
+| `LEDGER.md` | one table row per run: `date, run, target, mode, stop, cells, K, dataset, K_cum, methods_score` | 250 lines | step log; cumulative K per dataset (multiple testing across runs); methods score over time |
+| `FINDINGS.md` | `### <run> H<n> — <title>` + at most 3 lines: the claim; state + posterior + the slice evidence in one line; what it needs next (fresh slice, data) | 300 lines | priors, the already-tested list, leads to pick up |
+| `DATA_FACTS.md` | `- <dataset>: <fact> (<run>)`, one line | 150 lines | what a dataset IS, so no run re-discovers it |
+
+Rules:
+- **K and K_cum.** K = this run's scored slice openings (every `kind: test` and `kind: val` cell). K_cum = the previous
+  K_cum for the same `dataset` + K. Report K_cum beside K in REPORT.md: every new look at a dataset already explored
+  raises the bar for believing anything found in it.
+- **FINDINGS** gets an entry for every hypothesis that moved >= 0.05 off its prior and is not LOW; all LOW ones go on one
+  line `- <run> LOW: H2, H4 (<three-word reason each>)`. Hypotheses that never moved are not written.
+- **DATA_FACTS** holds facts about the data only (identity, stamping, coverage holes, twins), never results.
+- **How memory may be used.** FINDINGS informs priors (cite it in the `anchor`), the already-tested list and Phase 1
+  picks. It is never evidence: a finding from an earlier run does not move a posterior in this one. A hypothesis already
+  tested on this dataset's slices may only be re-tested on a slice no earlier run opened for it (say which in the rule
+  file).
+- **Consolidate, don't grow.** If an append would push a file over budget, first merge entries that say the same thing,
+  drop superseded ones (a later run re-tested it), and fold old LOW lines together. Log the consolidation in DECISIONS.md.
 
 ---
 
@@ -88,6 +175,7 @@ Every slice opening (EXPLORE test, each CONFIRM fold, VAL) is a row in `ATTEMPTS
 fewest completed sessions, ties broken A→B→C→D→E. If that mode has nothing unused in its inbox section (A/B/C only — D and E
 always have material), log it in DECISIONS.md and move to the next least-used mode. Write the picked mode into this run's
 `DECISIONS.md` with the count table you read. Exactly one mode per session — never mix A with D, etc.
+Whatever the route, `DECISIONS.md` carries one machine-readable line `mode: <A|B|C|D|E>` (gate.py reads it).
 
 For A/B/C: mark the picked inbox item `used <run folder>` in `INBOX.md` at the end of Phase 3 (only after REPORT.md exists).
 Do not consume more than one item (B) or one group (C) per session.
@@ -104,6 +192,13 @@ new tab, 12 page loads max, log every page in DECISIONS.md. Mode D reading local
 
 Not optional for any mode, including B/C/D where a claim is already in hand — the data-nature facts here feed the Phase 1
 "assumption" and "impostor" checks for EVERY hypothesis regardless of where it came from.
+
+**Supplied-clean data (v3.2).** The user cleans data before supplying it. When the data folder has a `CLEANING_LOG.md`, do
+not re-clean and do not re-report its facts; item 2 shrinks to "anything the log does not cover". What is never skipped is
+the **identity check** in DATA_CARD.md: is each file the instrument, venue and stamping it claims to be (first timestamp
+against the instrument's listing date; a cross-match against a second series of the same instrument where the bundle has
+one; open- vs close-stamp from day boundaries). Check `MEMORY\DATA_FACTS.md` first — a fact already recorded there for this
+dataset is cited, not re-derived.
 
 Write `DATA_PROFILE.md` with one section per item below. Each section states its own question and pre-committed rule (14c
 rule 1 applies to data-nature claims too — e.g. "1-min returns autocorrelated at lag 1: yes if |ACF(1)| > 2/sqrt(n)"), then a
@@ -198,6 +293,8 @@ For each iteration:
    hypothesis: H<n>
    slice: <EXPLORE | C<j> | VAL>
    kind: <test | redirect | val>
+   method: <M<n>>          # v3.2, optional: the METHOD_SPEC.md method this cell replicates (required on the first test
+                           # cell of every SOURCE-born hypothesis in modes B/C)
    ```
    then the sub-claim, the 14c menu row + tool named, the decision rule with three branches and numbers, and the **evidence
    weight** for each branch:
@@ -293,9 +390,13 @@ are the FINAL state, after the Phase 3 VAL cells.
    chased this session).
 3. **`INBOX_PROPOSALS.md`** — any new idea/paper/group worth a future session goes here, never written into `INBOX.md`
    directly (same pattern as `DATA_ADDED.md` in the x101 runs — the human merges it).
-4. Mark the consumed inbox item(s) `used <run folder>` in `INBOX.md`. Increment this mode's count in `MODES.md`.
-5. Set `TARGET.md` STATUS to `DONE <run folder>` — but only if `gate.py` (see below) passes. If it fails, fix what it names
-   and re-run the check; do not write DONE around a failing gate.
+4. **Memory** (MEMORY section above): append this run's one `LEDGER.md` row (`methods_score: pending`), its `FINDINGS.md`
+   entries and LOW line, and any new `DATA_FACTS.md` lines; consolidate first if a file would pass its budget.
+5. Run `gate.py`; it must print PASS. Then the judge. Copy the judge's `METHODS_SCORE` into this run's LEDGER row
+   (replacing `pending`) and its verdict block into REPORT.md verbatim.
+6. Mark the consumed inbox item(s) `used <run folder>` in `INBOX.md`. Increment this mode's count in `MODES.md`.
+7. Set `TARGET.md` STATUS to `DONE <run folder>` — but only if `gate.py` passed. If it fails, fix what it names and re-run
+   the check; do not write DONE around a failing gate.
 
 ---
 
@@ -309,15 +410,20 @@ are the FINAL state, after the Phase 3 VAL cells.
   on EXPLORE or an already-opened slice, no NO-STORY entry on a fold); every posterior equals its prior times the
   `weight_applied` chain, each weight within the 10x cap; every state matches its posterior and fold record; VAL only for
   HIGH-CONFIRM, after every test cell; `STOP_REASON.md`'s counts and S1-S4 claim match what `BELIEFS.md` and the cells
-  actually show. If it prints `FAIL`, fix what it names —
+  actually show. **v3.2 adds:** a `mode:` line in DECISIONS.md; every non-base import has a pinned, validated INSTALLS.md
+  row from PyPI/conda-forge; in modes B/C a complete METHOD_SPEC.md with every deviation explained and every SOURCE-born
+  hypothesis tested by a cell citing it (`method: M<n>`); exactly one LEDGER row for the run with K >= its scored openings
+  and K_cum carried per dataset; a FINDINGS entry (<= 3 lines) per moved non-LOW hypothesis and a LOW line; every MEMORY
+  file inside its budget. If it prints `FAIL`, fix what it names —
   do not write DONE around a failing gate, and do not edit a result file to make an mtime check pass; fix the process
   defect it's pointing at.
 - **`eda-v3-judge` agent** (`C:\Users\User\eda-routine\.claude\agents\eda-v3-judge.md`) — read-only, run AFTER `gate.py`
   passes. Checks what `gate.py` structurally cannot: whether an evidence weight's power/alpha was real and applied
   correctly, whether the stop was actually earned (not a disguised early stop dressed up as S2/S3), whether the
   EXPLORE/fold funnel was really obeyed per hypothesis, whether a spawned "new" hypothesis was a genuine redirect or a
-  rewrite of a dead claim, and whether a NO-STORY lead was reported as no more than a lead. Returns PASS/FAIL with numbered
-  issues. A FAIL here does not block `STATUS: DONE` mechanically the way `gate.py` does — it is read by the human review
+  rewrite of a dead claim, and whether a NO-STORY lead was reported as no more than a lead. **v3.2:** it also judges tool
+  fitness, install quality, method fidelity and memory discipline, and returns a `METHODS_SCORE` 0-3 (the reward, see
+  INSTALLS AND METHODS). Returns PASS/FAIL with numbered issues. A FAIL here does not block `STATUS: DONE` mechanically the way `gate.py` does — it is read by the human review
   that follows every `DONE`, same as a `FAIL-MINOR`/`FAIL-MAJOR` from the finding-alphas judges.
 
 Run both at the end of Phase 3, in that order — `gate.py` first since the judge assumes its checks already passed.
@@ -329,4 +435,6 @@ Run EDA as a "show what you can do" exercise; present a finding with no pre-comm
 sub-claim; test a NO-STORY lead on a CONFIRM fold without a forbidding prediction; test a hypothesis on the slice that produced
 it or a slice where its statistic was already seen; open the same slice twice for one hypothesis; skip a fold to reach a
 later one; call a significant-but-too-small effect "supported"; multiply the same evidence in twice (guard a); let one cell
-move a probability past the 10x cap (guard b); stop with a pickable hypothesis and no S2/S3; build a generic `eda.py`.
+move a probability past the 10x cap (guard b); use a package with no validated INSTALLS.md row; deviate from a
+source's method without saying so in METHOD_SPEC.md; install a package that no scored cell uses; write results into
+DATA_FACTS.md or more than 3 lines per finding into FINDINGS.md; stop with a pickable hypothesis and no S2/S3; build a generic `eda.py`.

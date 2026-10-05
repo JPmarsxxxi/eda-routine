@@ -108,6 +108,48 @@ For every `cells\cell_NN_rule.md`:
 3. If `SOURCE_MODE` was explicitly set in `TARGET.md`, was autopick's tie-break logic used anyway (i.e.
    ignored the explicit setting)? That is a FAIL — autopick only fires on a blank line.
 
+## Checklist G — tools and methods (v3.2; RUNBOOK_v3.md "INSTALLS AND METHODS")
+
+This is the one place you DO judge tool choice — narrowly: was the tool fit for the claim it served, and was a source's
+method followed. You still do not judge whether the hypothesis is a good idea.
+
+1. **Weaker proxy.** For each scored cell, is there a standard tool that tests this claim type clearly better (14c's menu,
+   or an established library for the structure: change-points, regime/HMM, quantile or threshold regression, GARCH/HAR for
+   volatility, Fama-MacBeth for cross-sections) that the run neither used nor gave a reason for skipping in the rule file or
+   DECISIONS.md? A conditional claim tested unconditionally, a break claim judged by eye, a vol forecast with no vol model
+   as the control — FAIL, naming the cell and the better tool.
+2. **Installs earned.** For each INSTALLS.md row: does its validation cell actually plant a known answer and recover it
+   (not just "it ran")? Is the package used in at least one SCORED cell? An install used only in a descriptive or not at
+   all is decoration — FAIL.
+3. **Method fidelity (modes B/C).** Read the source section METHOD_SPEC.md cites. Does the spec match what the paper did
+   (estimator, parameters, sample construction)? Does the cell citing `method: M<n>` implement the spec as written? An
+   undeclared difference between paper, spec and code — FAIL, naming which of the three disagree.
+4. **Replication first.** In B/C, was the as-specified replication run and reported BEFORE any variant of it? A variant
+   reported as the headline with the replication buried — FAIL.
+
+## Checklist H — memory discipline (v3.2; RUNBOOK_v3.md "MEMORY")
+
+1. **Facts are facts.** Does any `MEMORY/DATA_FACTS.md` line this run added contain a result (an effect size, an IC, a
+   "works"/"doesn't")? FAIL.
+2. **Findings are faithful and minimal.** Does each of this run's `FINDINGS.md` entries state the same state, posterior and
+   slice evidence as BELIEFS.md and the result files? Any line a future run would not act on (narrative, adjectives, repeats
+   of the claim) is crowding — FAIL.
+3. **Memory was not used as evidence.** Did any posterior in this run move because of an earlier run's finding rather than a
+   cell of this run? Did a hypothesis already tested on this dataset get re-tested on a slice an earlier run already opened
+   for it (check LEDGER/FINDINGS against SPLITS.md)? FAIL.
+4. **K_cum reported.** Does REPORT.md state K and K_cum beside each other? FAIL if not.
+
+## Methods score (always given, PASS or FAIL)
+
+Score the run 0-3 by RUNBOOK_v3.md's rubric, judging only Checklist G's ground:
+- 0 = a G1 weaker-proxy failure, an undeclared method deviation (G3), or decoration (G2);
+- 1 = sound base-stack tools, nothing beyond;
+- 2 = at least one validated non-base tool, better fit than the base stack, used in a scored cell; OR (B/C) every source
+  method replicated with deviations justified;
+- 3 = both, AND the better tool demonstrably mattered (changed a branch, raised power, or tested structure the base stack
+  could not) — name the cell.
+Do not round up. A 3 needs the named cell.
+
 ## Your verdict
 
 Reply in exactly this shape and nothing else:
@@ -115,6 +157,7 @@ Reply in exactly this shape and nothing else:
 ```
 VERDICT: PASS
 REASON: <one sentence>
+METHODS_SCORE: <0-3> — <one sentence; for 2 or 3, name the tool/method and the cell>
 ```
 
 or
@@ -122,13 +165,14 @@ or
 ```
 VERDICT: FAIL
 REASON: <EVERY failed check, each with its evidence — checklist letter + number, one per line>
+METHODS_SCORE: <0-3> — <one sentence; for 2 or 3, name the tool/method and the cell>
 ```
 
-**Do not stop at the first failure.** Work through all six checklists, then report every failed check
+**Do not stop at the first failure.** Work through all eight checklists (A-H), then report every failed check
 in one block. A report naming one failure when three exist is itself a failed report.
 
 **Severity is flat here** — there is no MINOR tier for this judge. Anything on checklists A-D is a
-process-validity defect (it lets a false hypothesis look supported); E and F are discipline defects
+process-validity defect (it lets a false hypothesis look supported); E, F, G and H are discipline defects
 that the next run needs to know about. Report them all as FAIL line items; do not invent a MINOR/MAJOR
 split gate.py and this judge were not asked to make.
 

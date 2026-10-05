@@ -3,6 +3,35 @@
 Status: DRAFT for the user to read. RUNBOOK.md (v2) is untouched and stays the live one until v3 is approved and built.
 Written 2026-09-28.
 
+## Amendment v3.2 (2026-10-05): installs earned and rewarded, method fidelity, memory across runs
+
+Supersedes earlier text where they differ; RUNBOOK_v3.md sections "INSTALLS AND METHODS" and "MEMORY" carry the rules.
+
+**Why.** Runs used only linear, one-predictor, base-stack tools. The 2026-09-28 BTC run tested a conditional effect (the
+funding-clock basis jump, which needs positive funding) unconditionally and lost it. `PRE-APPROVED INSTALLS: none` plus 14c's
+"ask before heavy dependencies" meant an unattended run could never reach for the right tool. Separately, every run started
+from nothing: leads and data facts found in one run (e.g. "the perp bundle's price files are spot") lived only in that run's
+folder, and nothing counted how often the same dataset had been looked at.
+
+**Change.**
+- Installs: default `any`, from PyPI/conda-forge, pinned, into `.venv` only. Each is earned by a validation cell that
+  recovers a planted answer and logged in `INSTALLS.md`. gate.py refuses an unlogged or unvalidated import.
+- Reward: the judge gives a `METHODS_SCORE` 0-3 (fit of tool to claim; validated tools that mattered; faithful replication),
+  logged per run in `MEMORY/LEDGER.md`. It is the thing a run can raise by going the extra mile.
+- Modes B/C: `METHOD_SPEC.md` pins the paper's estimator, library, parameters and sample before any data is opened. The
+  first test of every source claim replicates it as written (`method: M<n>`), with deviations declared in advance.
+- Memory: `MEMORY/LEDGER.md` (one row per run, cumulative K per dataset), `FINDINGS.md` (<= 3 lines per moved hypothesis),
+  `DATA_FACTS.md` (facts about the data, never results). Hard line budgets; consolidated rather than grown; used for priors
+  and the already-tested list, never as evidence.
+- Supplied-clean data: Phase 0 does not re-clean when a CLEANING_LOG exists, but always runs the identity check.
+
+**Risks and guards.**
+- Installs are a supply-chain surface. Guard: PyPI/conda-forge only, pinned, no git URLs or repo install scripts.
+- Tool-shopping inflates looks. Guard: every scored cell counts in K and K_cum regardless of tool, and the judge marks
+  decoration down.
+- Memory can bias exploration and repeat looks at the same slices. Guard: never evidence, K_cum reported, and a re-test must
+  use a slice no earlier run opened for that claim.
+
 ## Amendment v3.1 (2026-10-02): several CONFIRM folds instead of one CONFIRM slice
 
 Supersedes "The funnel" below wherever they differ; RUNBOOK_v3.md carries the operational rules.

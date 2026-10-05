@@ -49,9 +49,9 @@ ALREADY TESTED (names only, do NOT pick these): BTC hour-of-day seasonality (the
             A Phase-0 observation on this file that turns into a hypothesis needs to say what it's doing
             differently from that already-tested ground, not just re-arrive at it.
 
-PRE-APPROVED INSTALLS: none   (14c says ask before heavy dependencies; the routine cannot ask, so with "none" it installs
-                              nothing. To pre-approve, list packages here, e.g. "pymc, arviz", and they go only into
-                              C:\Users\User\eda-routine\.venv.)
+PRE-APPROVED INSTALLS: any    (v3.2 default: whatever the claim needs, PyPI/conda-forge only, pinned, into
+                              C:\Users\User\eda-routine\.venv, each validated before use - RUNBOOK_v3.md "INSTALLS AND
+                              METHODS". Narrow it by listing packages, e.g. "pymc, arviz"; "none" forbids installs.)
 
 ROUND-TRIP COST (bp): <blank — but NOT unknown this time: btc_hist_halfspread_hourly/ carries real hourly
                       half-spread in bp. Price cost from that series at the trade minute, per event, per

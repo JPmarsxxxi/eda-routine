@@ -29,7 +29,7 @@ section names as gate.py's companion. gate.py is the floor, not the ceiling.
 
 Usage
 -----
-    python gate.py <run_dir>
+    python gate.py <run_dir> [--memory <MEMORY dir>]     (default MEMORY dir: <eda-routine>/MEMORY)
 
 Exits 0 and prints PASS if every check passes. Exits 1 and prints FAIL plus every issue, numbered, if
 not. `STATUS: DONE` may only be written to TARGET.md after this prints PASS for that run's folder.
@@ -106,6 +106,7 @@ class Cell:
     kind: str
     branch: str | None = None
     weight: float | None = None
+    method: str | None = None   # v3.2: optional `method: M<n>` header (METHOD_SPEC.md id)
 
 
 # ------------------------------------------------------------------ file helpers
@@ -329,7 +330,7 @@ def check_cells(run_dir: str, report: GateReport) -> list[Cell]:
             report.add("cell_missing_announce", f"cell_{nn}: no cell_{nn}_announce.md")
 
         with open(rule_path, encoding="utf-8") as fh:
-            head = _parse_kv_file(fh.read(), ["hypothesis", "slice", "kind"])
+            head = _parse_kv_file(fh.read(), ["hypothesis", "slice", "kind", "method"])
         missing = [k for k in ("hypothesis", "slice", "kind") if not head.get(k)]
         if missing:
             report.add(
@@ -340,7 +341,7 @@ def check_cells(run_dir: str, report: GateReport) -> list[Cell]:
         if head["kind"] not in CELL_KINDS:
             report.add("cell_bad_kind", f"cell_{nn}: kind='{head['kind']}' is not one of {sorted(CELL_KINDS)}")
             continue
-        cell = Cell(int(nn), head["hypothesis"], head["slice"], head["kind"])
+        cell = Cell(int(nn), head["hypothesis"], head["slice"], head["kind"], method=head.get("method") or None)
 
         if not os.path.exists(result_path):
             report.add("cell_missing_result", f"cell_{nn}: no cell_{nn}_result.md")
@@ -579,9 +580,224 @@ def check_stop_reason(run_dir: str, beliefs: list[dict], cells: list[Cell], fold
         )
 
 
+# ------------------------------------------------------------------ v3.2: mode, installs, methods, memory
+
+MODES_ALL = ("A", "B", "C", "D", "E")
+SOURCE_METHOD_MODES = ("B", "C")   # a paper is the source: its method must be specified and matched
+METHOD_KEYS = ["source", "estimator", "library", "parameters", "sample", "match", "deviation_reason"]
+INSTALL_SOURCES = {"pypi", "conda-forge"}
+# Imports that need no INSTALLS.md row: the base scientific stack, and the engine's own helpers.
+BASE_IMPORTS = {
+    "numpy", "pandas", "scipy", "statsmodels", "matplotlib", "seaborn", "pyarrow", "plotly",
+    "eda_guard", "cellplot", "data_hygiene",
+}
+MEMORY_BUDGET_LINES = {"LEDGER.md": 250, "FINDINGS.md": 300, "DATA_FACTS.md": 150}
+FINDINGS_MAX_LINES_PER_ENTRY = 3
+FINDINGS_MIN_MOVE = 0.05   # a hypothesis that moved this far off its prior (and is not LOW) gets a FINDINGS entry
+LEDGER_COLS = ["date", "run", "target", "mode", "stop", "cells", "K", "dataset", "K_cum", "methods_score"]
+
+
+def check_mode(run_dir: str, report: GateReport) -> str | None:
+    """DECISIONS.md must carry one machine-readable `mode: <A-E>` line."""
+    text = _read(run_dir, "DECISIONS.md")
+    if text is None:
+        return None
+    mode = _parse_kv_file(text, ["mode"]).get("mode", "").strip().upper()[:1]
+    if mode not in MODES_ALL:
+        report.add("decisions_no_mode", "DECISIONS.md has no `mode: <A|B|C|D|E>` line")
+        return None
+    return mode
+
+
+def _stdlib() -> set:
+    return set(getattr(sys, "stdlib_module_names", ())) | {"__future__"}
+
+
+def _script_imports(run_dir: str) -> dict:
+    """{top-level module name: first file that imports it} over every .py file in the run folder.
+    Modules defined by the run's own .py files are local, not installs."""
+    pys = glob.glob(_path(run_dir, "**", "*.py"), recursive=True)
+    local = {os.path.splitext(os.path.basename(p))[0] for p in pys}
+    found = {}
+    for p in pys:
+        with open(p, encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                m = re.match(r"^\s*(?:from\s+([A-Za-z_]\w*)[\w.]*\s+import|import\s+([A-Za-z_]\w*))", line)
+                if m:
+                    name = m.group(1) or m.group(2)
+                    if name not in local:
+                        found.setdefault(name, os.path.relpath(p, run_dir))
+    return found
+
+
+def _parse_table(text: str) -> list[dict]:
+    """Rows of the first markdown table in `text`, as dicts keyed by its header row."""
+    lines = [l.strip() for l in text.splitlines() if l.strip().startswith("|")]
+    if len(lines) < 2:
+        return []
+    head = [c.strip() for c in lines[0].strip("|").split("|")]
+    rows = []
+    for l in lines[2:]:
+        cells = [c.strip() for c in l.strip("|").split("|")]
+        if len(cells) == len(head):
+            rows.append(dict(zip(head, cells)))
+    return rows
+
+
+def check_installs(run_dir: str, report: GateReport) -> None:
+    """Every import outside the stdlib and the base stack needs an INSTALLS.md row: a pinned version, an
+    allowed source, the claim it serves, what it adds, and a validation file that exists and PASSED."""
+    extra = {n: f for n, f in _script_imports(run_dir).items() if n not in _stdlib() and n not in BASE_IMPORTS}
+    text = _read(run_dir, "INSTALLS.md")
+    rows = {r.get("import", "").strip(): r for r in _parse_table(text)} if text else {}
+    for name, where in sorted(extra.items()):
+        r = rows.get(name)
+        if r is None:
+            report.add("install_unlogged", f"`{name}` is imported ({where}) but INSTALLS.md has no row with import={name}")
+            continue
+        ver = r.get("version", "").strip()
+        if not re.match(r"^\d+(\.\d+)*[a-z0-9.+-]*$", ver):
+            report.add("install_unpinned", f"INSTALLS.md `{name}`: version '{ver}' is not a pinned version number")
+        if r.get("source", "").strip().lower() not in INSTALL_SOURCES:
+            report.add("install_bad_source",
+                       f"INSTALLS.md `{name}`: source '{r.get('source', '')}' is not one of {sorted(INSTALL_SOURCES)}")
+        for col in ("claim", "adds"):
+            if r.get(col, "").strip().lower() in ("", "-", "none"):
+                report.add("install_no_reason",
+                           f"INSTALLS.md `{name}`: '{col}' is empty - name the claim it serves and what it adds over the base stack")
+        val = r.get("validation", "").strip()
+        if not val or not os.path.exists(_path(run_dir, val)):
+            report.add("install_no_validation", f"INSTALLS.md `{name}`: validation file '{val}' does not exist in the run folder")
+        if r.get("result", "").strip().upper() != "PASS":
+            report.add("install_validation_failed",
+                       f"INSTALLS.md `{name}`: validation result is '{r.get('result', '')}', not PASS - an unvalidated tool may not be used")
+
+
+def check_method_spec(run_dir: str, mode: str | None, beliefs: list[dict], cells: list[Cell],
+                      report: GateReport) -> None:
+    """Modes B/C: METHOD_SPEC.md specifies the source's method(s) as `## M<n>` blocks, every deviation has a
+    reason, and every SOURCE-born hypothesis has a test cell citing a defined method (`method: M<n>`)."""
+    cited = {c.method for c in cells if c.method}
+    text = _read(run_dir, "METHOD_SPEC.md")
+    if mode not in SOURCE_METHOD_MODES and text is None:
+        if cited:
+            report.add("method_unknown_ref", f"cells cite {sorted(cited)} but there is no METHOD_SPEC.md")
+        return
+    if text is None:
+        report.add("method_spec_missing",
+                   f"mode {mode}: METHOD_SPEC.md is required (the source's method, specified before any data is opened)")
+        return
+    blocks = re.split(r"(?m)^##\s*(M\d+)\b", text)
+    specs = {blocks[i]: _parse_kv_file(blocks[i + 1], METHOD_KEYS) for i in range(1, len(blocks), 2)}
+    if not specs:
+        report.add("method_spec_missing", "METHOD_SPEC.md has no `## M<n>` method blocks")
+        return
+    for mid, kv in specs.items():
+        missing = [k for k in METHOD_KEYS if not kv.get(k)]
+        if missing:
+            report.add("method_spec_bad_entry", f"METHOD_SPEC.md {mid}: missing field(s) {missing}")
+            continue
+        match = kv["match"].lower()
+        if match not in ("exact", "deviation"):
+            report.add("method_spec_bad_entry", f"METHOD_SPEC.md {mid}: match='{kv['match']}' is not exact|deviation")
+        if match == "deviation" and kv["deviation_reason"].lower() in ("none", "-"):
+            report.add("method_deviation_unexplained", f"METHOD_SPEC.md {mid}: deviates from the source with no stated reason")
+    for c in cells:
+        if c.method and c.method not in specs:
+            report.add("method_unknown_ref", f"cell_{c.nn:02d}: method '{c.method}' is not defined in METHOD_SPEC.md")
+    if mode in SOURCE_METHOD_MODES:
+        for e in beliefs:
+            if _born_slice(e) != "SOURCE":
+                continue
+            if not any(c.hypothesis == e["_id"] and c.kind in ("test", "val") and c.method in specs for c in cells):
+                report.add("method_not_used",
+                           f"{e['_id']} is SOURCE-born in mode {mode} but no test cell cites a METHOD_SPEC.md method (`method: M<n>`)")
+
+
+def memory_dir_for(run_dir: str) -> str:
+    """Default MEMORY dir: <eda-routine>/MEMORY, two levels above runs/<run>."""
+    return os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(run_dir))), "MEMORY")
+
+
+def check_memory(run_dir: str, memory_dir: str, mode: str | None, beliefs: list[dict], cells: list[Cell],
+                 report: GateReport) -> None:
+    """The run appended its memory, and memory stays inside its budgets (RUNBOOK_v3.md MEMORY)."""
+    run = os.path.basename(os.path.normpath(run_dir))
+    texts = {}
+    for name, budget in MEMORY_BUDGET_LINES.items():
+        p = os.path.join(memory_dir, name)
+        if not os.path.exists(p):
+            report.add("memory_missing", f"{p} does not exist")
+            continue
+        with open(p, encoding="utf-8") as fh:
+            texts[name] = fh.read()
+        n = len(texts[name].splitlines())
+        if n > budget:
+            report.add("memory_over_budget", f"MEMORY/{name} has {n} lines, budget {budget} - consolidate before closing")
+
+    if "LEDGER.md" in texts:
+        rows = _parse_table(texts["LEDGER.md"])
+        head_line = next((l for l in texts["LEDGER.md"].splitlines() if l.strip().startswith("|")), "")
+        header = {c.strip() for c in head_line.strip().strip("|").split("|")}
+        if set(LEDGER_COLS) - header:
+            report.add("ledger_bad_columns", f"MEMORY/LEDGER.md needs a table with columns {LEDGER_COLS}")
+        else:
+            mine = [i for i, r in enumerate(rows) if r.get("run") == run]
+            if len(mine) != 1:
+                report.add("ledger_row_missing" if not mine else "ledger_row_duplicate",
+                           f"MEMORY/LEDGER.md has {len(mine)} row(s) for run '{run}'; exactly 1 is required")
+            else:
+                r = rows[mine[0]]
+                scored = sum(1 for c in cells if c.kind in ("test", "val"))
+                try:
+                    k, kcum = int(r["K"]), int(r["K_cum"])
+                    if k < scored:
+                        report.add("ledger_k_too_small", f"LEDGER K={k} is below this run's {scored} scored slice openings")
+                    prev = 0
+                    for row in rows[: mine[0]]:
+                        if row.get("dataset") == r.get("dataset") and row.get("K_cum", "").isdigit():
+                            prev = int(row["K_cum"])
+                    if kcum != prev + k:
+                        report.add("ledger_bad_kcum",
+                                   f"LEDGER K_cum={kcum} for dataset '{r.get('dataset')}' should be {prev} (previous) + {k} = {prev + k}")
+                except ValueError:
+                    report.add("ledger_bad_number", f"LEDGER row for '{run}': K and K_cum must be integers")
+                if mode and r.get("mode", "").strip().upper()[:1] != mode:
+                    report.add("ledger_mode_mismatch", f"LEDGER mode '{r.get('mode')}' differs from DECISIONS.md mode '{mode}'")
+                if r.get("methods_score", "").strip().lower() not in ("pending", "0", "1", "2", "3"):
+                    report.add("ledger_bad_score", f"LEDGER methods_score '{r.get('methods_score')}' must be pending or 0-3")
+
+    if "FINDINGS.md" in texts:
+        ft = texts["FINDINGS.md"]
+        entries = {}
+        heads = list(re.finditer(r"(?m)^###\s+(\S+)\s+(H\d+)\b.*$", ft))
+        for i, m in enumerate(heads):
+            end = heads[i + 1].start() if i + 1 < len(heads) else len(ft)
+            body = ft[m.end():end]
+            body = re.split(r"(?m)^#", body)[0]   # stop at the next heading of any level
+            entries[(m.group(1), m.group(2))] = [l for l in body.splitlines() if l.strip()]
+        for e in beliefs:
+            moved = abs(float(e["posterior"]) - float(e["prior"])) >= FINDINGS_MIN_MOVE
+            if e["state"] == "LOW" or not moved:
+                continue
+            body = entries.get((run, e["_id"]))
+            if body is None:
+                report.add("findings_missing",
+                           f"MEMORY/FINDINGS.md has no `### {run} {e['_id']}` entry ({e['state']}, {e['prior']} -> {e['posterior']})")
+            elif len(body) > FINDINGS_MAX_LINES_PER_ENTRY:
+                report.add("findings_too_long",
+                           f"MEMORY/FINDINGS.md `{run} {e['_id']}` has {len(body)} lines, max {FINDINGS_MAX_LINES_PER_ENTRY}")
+        lows = {e["_id"] for e in beliefs if e["state"] == "LOW"}
+        if lows:
+            m = re.search(rf"(?m)^-?\s*{re.escape(run)}\s+LOW:\s*(.*)$", ft)
+            named = set(re.findall(r"H\d+", m.group(1))) if m else set()
+            if lows - named:
+                report.add("findings_low_line_missing",
+                           f"MEMORY/FINDINGS.md needs a `{run} LOW: ...` line naming {sorted(lows - named)}")
+
 # ------------------------------------------------------------------ entry point
 
-def check_run(run_dir: str) -> GateReport:
+def check_run(run_dir: str, memory_dir: str | None = None) -> GateReport:
     report = GateReport(run_dir=run_dir)
     if not os.path.isdir(run_dir):
         report.add("no_such_dir", f"{run_dir} is not a directory")
@@ -594,14 +810,25 @@ def check_run(run_dir: str) -> GateReport:
     check_slice_rules(beliefs, cells, folds, report)
     check_posteriors_and_states(beliefs, cells, report)
     check_stop_reason(run_dir, beliefs, cells, folds, report)
+    mode = check_mode(run_dir, report)
+    check_installs(run_dir, report)
+    check_method_spec(run_dir, mode, beliefs, cells, report)
+    check_memory(run_dir, memory_dir or memory_dir_for(run_dir), mode, beliefs, cells, report)
     return report
 
 
 def main(argv: list) -> int:
-    if len(argv) != 2:
-        print("usage: python gate.py <run_dir>")
+    args = list(argv[1:])
+    memory_dir = None
+    if "--memory" in args:
+        i = args.index("--memory")
+        memory_dir = args[i + 1] if i + 1 < len(args) else None
+        del args[i:i + 2]
+    if len(args) != 1 or (memory_dir is None and "--memory" in argv):
+        print("usage: python gate.py <run_dir> [--memory <MEMORY dir>]")
         return 2
-    report = check_run(argv[1])
+    argv = [argv[0], args[0]]
+    report = check_run(argv[1], memory_dir)
     if report.ok:
         print(f"PASS: {argv[1]}")
         return 0
