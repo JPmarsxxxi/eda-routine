@@ -1,0 +1,94 @@
+{
+ "oi_zero_hours": 1,
+ "qvol_zero_hours": 1,
+ "funding_cap_hits": 2,
+ "funding_n": 2193,
+ "funding_eq_0.0001_share": 0.46785225718194257,
+ "gap_max_hours::spot close": 34,
+ "gaps_ge_24h::spot close": 1,
+ "months_lt95::spot close": 1,
+ "first::spot close": "2017-08-17 04:00:00",
+ "gap_max_hours::1m minutes (n_min=60)": 367,
+ "gaps_ge_24h::1m minutes (n_min=60)": 14,
+ "months_lt95::1m minutes (n_min=60)": 5,
+ "first::1m minutes (n_min=60)": "2017-08-21 07:00:00",
+ "gap_max_hours::metrics (oi)": 4,
+ "gaps_ge_24h::metrics (oi)": 0,
+ "months_lt95::metrics (oi)": 0,
+ "first::metrics (oi)": "2020-09-01 00:00:00",
+ "gap_max_hours::ls_all": 33,
+ "gaps_ge_24h::ls_all": 1,
+ "months_lt95::ls_all": 0,
+ "first::ls_all": "2020-09-01 00:00:00",
+ "gap_max_hours::dvol": 0,
+ "gaps_ge_24h::dvol": 0,
+ "months_lt95::dvol": 0,
+ "first::dvol": "2021-04-01 00:00:00",
+ "gap_max_hours::half_bp": 598,
+ "gaps_ge_24h::half_bp": 143,
+ "months_lt95::half_bp": 51,
+ "first::half_bp": "2017-08-20 15:00:00",
+ "gap_max_hours::basis": 4,
+ "gaps_ge_24h::basis": 0,
+ "months_lt95::basis": 0,
+ "first::basis": "2020-09-01 00:00:00",
+ "funding_steps_ne_8h": 0,
+ "half_bp_coverage_by_year": {
+  "2017": 0.785,
+  "2018": 0.528,
+  "2019": 0.349,
+  "2020": 0.547,
+  "2021": 0.35
+ },
+ "roll_halfspread_bp_1m": 3.452567807173929,
+ "half_bp_median_explore": 0.13187787566778789,
+ "pairs_abs_spearman_gt_0.5": [
+  [
+   "r",
+   "perp_taker_buy_share",
+   0.688
+  ],
+  [
+   "d_qvol",
+   "d_log_rv",
+   0.741
+  ],
+  [
+   "perp_taker_buy_share",
+   "log_taker",
+   0.76
+  ],
+  [
+   "d_oi",
+   "d_oi_val",
+   0.809
+  ],
+  [
+   "d_ls_top_cnt",
+   "d_ls_all",
+   0.835
+  ]
+ ],
+ "funding_spearman": {
+  "funding": 1.0,
+  "r_next8": -0.051,
+  "r_next24": -0.087,
+  "r_prev24": 0.056,
+  "basis_prev8": 0.938
+ },
+ "funding_n_rows": 1433,
+ "hod_max_min_ratio": {
+  "qvol_med": 1.82,
+  "absr_mean": 1.51,
+  "rv_med": 1.48,
+  "half_bp_med": 1.06,
+  "basis_mean": 1.56,
+  "d_oi_absmean": 1.63
+ },
+ "dow_max_min_ratio": {
+  "qvol_med": 1.45,
+  "absr_mean": 1.28,
+  "rv_med": 1.2,
+  "half_bp_med": 1.15
+ }
+}

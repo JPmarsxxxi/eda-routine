@@ -1,0 +1,15 @@
+{
+ "n": 10628,
+ "partial_rho": -0.018770136471192845,
+ "boot_se": 0.008896661325809211,
+ "branch": "SUPPORTED",
+ "crit": -0.0168,
+ "raw_spearman": -0.009368209927934475,
+ "partial_ctrl_r_and_rl1": -0.01613554931415679,
+ "partial_trim99": -0.016394684477783517,
+ "mean_gross_bp_per_hour": 0.8525775263820634,
+ "cost_events_covered": 3446,
+ "median_roundtrip_bp": 0.1679033194051091,
+ "mean_gross_bp_covered": -0.3864569396431701,
+ "mean_net_bp_covered": -0.5991723857169823
+}

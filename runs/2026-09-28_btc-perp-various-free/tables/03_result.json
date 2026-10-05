@@ -1,0 +1,11 @@
+{
+ "n": 10585,
+ "partial_rho": 0.009908870559454974,
+ "boot_se": 0.03432109880663457,
+ "raw_spearman": -0.004877552693776898,
+ "branch": "REFUTED",
+ "crit": 0.0689,
+ "partial_rho_plus_dvol": 0.05388523887720655,
+ "n_plus_dvol": 10585,
+ "partial_rho_plus_volume": 0.009638635035830406
+}

@@ -1,0 +1,21 @@
+{
+ "cycles_by_funding_state": {
+  "default": 679,
+  "low/neg": 232,
+  "pos": 550
+ },
+ "jump_mean_bp": 0.7433311558530582,
+ "jump_se": 0.052998695569137846,
+ "jump_n": 1456,
+ "drift_mean_bp": -0.7442138656351741,
+ "drift_se": 0.09817709152352458,
+ "spearman_jump_vs_funding_settled": 0.2274949431825504,
+ "spearman_drift_vs_funding_settled": -0.23843704255174697,
+ "placebo_midcycle_jump_mean_bp": -0.10821291092943328,
+ "placebo_se": 0.05055110338639152,
+ "dvol_rnext24_spearman_by_quarter": {
+  "2021-06-30": 0.059,
+  "2021-09-30": 0.087,
+  "2021-12-31": 0.241
+ }
+}

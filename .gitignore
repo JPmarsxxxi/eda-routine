@@ -6,3 +6,6 @@ data/
 __pycache__/
 *.pyc
 .venv/
+
+# regenerable 1-minute return copy (34MB), rebuilt by scripts/p0_panel.py
+runs/2026-09-28_btc-perp-various-free/tables/p0_r1_EXPLORE.parquet

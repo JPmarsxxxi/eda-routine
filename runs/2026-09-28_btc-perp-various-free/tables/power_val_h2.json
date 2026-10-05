@@ -1,0 +1,19 @@
+{
+ "x": "dvol",
+ "y": "rv24f",
+ "ctrl": [
+  "rv24b",
+  "rv7d",
+  "rv30d"
+ ],
+ "rho0": 0.1,
+ "alpha": 0.05,
+ "n_explore": 6369,
+ "n_sim": 5990,
+ "block": 240,
+ "reps": 1000,
+ "se_null": 0.07373715159565689,
+ "crit": 0.12129024065969601,
+ "power": 0.414,
+ "empirical_size": 0.036
+}

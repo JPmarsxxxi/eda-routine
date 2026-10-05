@@ -1,0 +1,180 @@
+{
+ "structure": {
+  "perp_hourly": {
+   "rows": 43020,
+   "first": "2019-01-01 00:00:00",
+   "last": "2023-11-30 23:00:00",
+   "max_le_val_end": true,
+   "rows_train": 36877,
+   "rows_embargo": 119,
+   "rows_val": 6024,
+   "dup_stamps": 0,
+   "dup_rows": 0,
+   "modal_step": "0 days 01:00:00",
+   "n_steps_gt_modal": 19,
+   "sorted": true,
+   "minute_second_nonzero": 0,
+   "symbol_values": [
+    "BTCUSDT"
+   ]
+  },
+  "perp_30m": {
+   "rows": 109973,
+   "first": "2017-08-17 04:00:00",
+   "last": "2023-11-30 23:30:00",
+   "max_le_val_end": true,
+   "rows_train": 97687,
+   "rows_embargo": 238,
+   "rows_val": 12048,
+   "dup_stamps": 0,
+   "dup_rows": 0,
+   "modal_step": "0 days 00:30:00",
+   "n_steps_gt_modal": 29,
+   "sorted": true,
+   "minute_second_nonzero": 0,
+   "symbol_values": [
+    "BTCUSDT"
+   ]
+  },
+  "perp_1m": {
+   "rows": 2906457,
+   "first": "2017-08-17 04:00:00",
+   "last": "2023-03-19 23:59:00",
+   "max_le_val_end": true,
+   "rows_train": 2906457,
+   "rows_embargo": 0,
+   "rows_val": 0,
+   "dup_stamps": 0,
+   "dup_rows": 0,
+   "modal_step": "0 days 00:01:00",
+   "n_steps_gt_modal": 11478,
+   "sorted": true,
+   "minute_second_nonzero": 0,
+   "symbol_values": null
+  },
+  "dvol": {
+   "rows": 23376,
+   "first": "2021-04-01 00:00:00",
+   "last": "2023-11-30 23:00:00",
+   "max_le_val_end": true,
+   "rows_train": 17232,
+   "rows_embargo": 120,
+   "rows_val": 6024,
+   "dup_stamps": 0,
+   "dup_rows": 0,
+   "modal_step": "0 days 01:00:00",
+   "n_steps_gt_modal": 0,
+   "sorted": true,
+   "minute_second_nonzero": 0,
+   "symbol_values": null
+  },
+  "hspread": {
+   "rows": 24302,
+   "first": "2017-08-20 15:00:00",
+   "last": "2023-11-30 23:00:00",
+   "max_le_val_end": true,
+   "rows_train": 21583,
+   "rows_embargo": 69,
+   "rows_val": 2650,
+   "dup_stamps": 0,
+   "dup_rows": 0,
+   "modal_step": "0 days 01:00:00",
+   "n_steps_gt_modal": 583,
+   "sorted": true,
+   "minute_second_nonzero": 0,
+   "symbol_values": null
+  },
+  "funding": {
+   "rows": 4290,
+   "first": "2020-01-01 00:00:00",
+   "last": "2023-11-30 16:00:00",
+   "max_le_val_end": true,
+   "rows_train": 3522,
+   "rows_embargo": 15,
+   "rows_val": 753,
+   "dup_stamps": 0,
+   "dup_rows": 0,
+   "modal_step": "0 days 08:00:00",
+   "n_steps_gt_modal": 1353,
+   "sorted": true,
+   "minute_second_nonzero": 2226,
+   "symbol_values": null
+  },
+  "metrics": {
+   "rows": 341064,
+   "first": "2020-09-01 00:00:00",
+   "last": "2023-11-30 23:55:00",
+   "max_le_val_end": true,
+   "rows_train": 267339,
+   "rows_embargo": 1440,
+   "rows_val": 72285,
+   "dup_stamps": 0,
+   "dup_rows": 0,
+   "modal_step": "0 days 00:05:00",
+   "n_steps_gt_modal": 152,
+   "sorted": true,
+   "minute_second_nonzero": 0,
+   "symbol_values": [
+    "BTCUSDT"
+   ]
+  }
+ },
+ "identity": {
+  "hourly_close_eq_1m_close_at_T+59m_(open-stamp)": 0.999972876942689,
+  "hourly_close_eq_1m_close_at_T-1m_(close-stamp)": 8.14000814000814e-05,
+  "30m_close_eq_1m_close_at_T+29m_(open-stamp)": 0.999989674861385,
+  "30m_close_eq_1m_close_at_T-1m_(close-stamp)": 0.0006402908159576995,
+  "hourly_close_eq_30m_close_of_second_half": 1.0,
+  "best_offset_metrics_vs_1m": {
+   "offset_min": 4.0,
+   "n": 267050.0,
+   "exact_match": 0.00022093240966111215,
+   "med_abs_bp": 4.607526851655457,
+   "mean_bp": -0.010049120500012276
+  },
+  "corr_gap_vs_funding_8h": 0.7857273247278221,
+  "gap_bp_by_year": {
+   "2020": {
+    "mean": 0.928,
+    "median": -0.124,
+    "std": 5.997,
+    "count": 35028
+   },
+   "2021": {
+    "mean": 4.53,
+    "median": 4.698,
+    "std": 7.867,
+    "count": 104438
+   },
+   "2022": {
+    "mean": -4.335,
+    "median": -4.445,
+    "std": 1.902,
+    "count": 105120
+   },
+   "2023": {
+    "mean": -2.103,
+    "median": -3.15,
+    "std": 3.454,
+    "count": 22464
+   }
+  }
+ },
+ "1m_complete_days": 1899,
+ "1m_complete_days_0000_2359": 1899,
+ "1m_days_total": 2041,
+ "funding_hours": {
+  "0": 1174,
+  "8": 1174,
+  "16": 1174
+ },
+ "funding_minutes_nonzero": 0,
+ "metrics_step_counts": {
+  "0 days 00:05:00": 267186,
+  "0 days 00:10:00": 108,
+  "0 days 00:15:00": 16,
+  "0 days 00:25:00": 5,
+  "0 days 00:20:00": 4,
+  "0 days 00:30:00": 3
+ }
+}

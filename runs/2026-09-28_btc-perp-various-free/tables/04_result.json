@@ -1,0 +1,16 @@
+{
+ "best_quarter": "2020Q4",
+ "best_quarter_rho": 0.1269484547122498,
+ "pooled_others_level_rho": 0.10545072957629667,
+ "pooled_all_level_rho": 0.12948860352795483,
+ "chg24_rho": 0.04816180476590178,
+ "chg24_se": 0.02480417945502846,
+ "chg24_n": 11250,
+ "ext_rho": 0.03497648643374357,
+ "ext_se": 0.034738695555122746,
+ "ext_n": 10845,
+ "B1": false,
+ "B2": false,
+ "B2_pick": null,
+ "branch": "B3"
+}

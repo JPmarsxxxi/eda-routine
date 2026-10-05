@@ -1,0 +1,10 @@
+{
+ "n": 10585,
+ "partial_rho": 0.17408408975742998,
+ "boot_se": 0.04017082706170802,
+ "raw_spearman": 0.5286206421718844,
+ "branch": "SUPPORTED",
+ "crit": 0.0869,
+ "partial_rho_plus_signed24h_return": 0.1755939320239056,
+ "partial_rho_plus_ewma": 0.1801669056677089
+}

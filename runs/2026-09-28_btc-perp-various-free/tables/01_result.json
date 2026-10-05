@@ -1,0 +1,12 @@
+{
+ "n": 1328,
+ "mean_D": 0.16343137201067226,
+ "nw_t": 2.1764418470735305,
+ "mean_jump": 0.08293714190671403,
+ "mean_placebo": -0.08049423010395822,
+ "branch": "REFUTED",
+ "spearman_jump_funding": 0.011432670899473536,
+ "cost_events_covered": 432,
+ "median_roundtrip_2leg_bp": 0.3415095795273035,
+ "funding_share_eq_default": 0.3539156626506024
+}

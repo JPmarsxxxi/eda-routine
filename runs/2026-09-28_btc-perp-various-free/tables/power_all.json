@@ -1,0 +1,85 @@
+{
+ "H2": {
+  "x": "dvol",
+  "y": "rv24f",
+  "ctrl": [
+   "rv24b",
+   "rv7d",
+   "rv30d"
+  ],
+  "rho0": 0.1,
+  "alpha": 0.05,
+  "n_explore": 6369,
+  "n_sim": 10632,
+  "block": 240,
+  "reps": 1000,
+  "se_null": 0.05284505146479468,
+  "crit": 0.08692482515444076,
+  "power": 0.609,
+  "empirical_size": 0.046
+ },
+ "H3": {
+  "x": "basis",
+  "y": "rv24f",
+  "ctrl": [
+   "rv24b",
+   "rv7d",
+   "rv30d"
+  ],
+  "rho0": 0.1,
+  "alpha": 0.05,
+  "n_explore": 11344,
+  "n_sim": 10632,
+  "block": 240,
+  "reps": 1000,
+  "se_null": 0.04188699721219943,
+  "crit": 0.06889992171434683,
+  "power": 0.772,
+  "empirical_size": 0.057
+ },
+ "H4": {
+  "x": "dvol",
+  "y": "r24f",
+  "ctrl": [],
+  "rho0": 0.05,
+  "alpha": 0.05,
+  "n_explore": 6527,
+  "n_sim": 10632,
+  "block": 240,
+  "reps": 1000,
+  "se_null": 0.040681375891356536,
+  "crit": 0.06691679520369237,
+  "power": 0.363,
+  "empirical_size": 0.048
+ },
+ "H5": {
+  "x": "r",
+  "y": "r_next1",
+  "ctrl": [],
+  "rho0": -0.03,
+  "alpha": 0.05,
+  "n_explore": 11624,
+  "n_sim": 10632,
+  "block": 240,
+  "reps": 1000,
+  "se_null": 0.00927457709879104,
+  "crit": -0.015255751869801383,
+  "power": 0.946,
+  "empirical_size": 0.042
+ },
+ "H1_explore_descr": {
+  "n": 1432,
+  "mean": 1.013993314562635,
+  "sd": 4.283817438663218
+ },
+ "H1": {
+  "stat": "mean D, NW(3) t, one-sided",
+  "eff0_bp": 0.5,
+  "alpha": 0.01,
+  "n_sim": 1329,
+  "block": 21,
+  "reps": 2000,
+  "power": 0.97,
+  "empirical_size": 0.0115
+ }
+}

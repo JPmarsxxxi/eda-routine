@@ -1,0 +1,18 @@
+{
+ "x": "d_basis",
+ "y": "r_next1",
+ "ctrl": [
+  "r"
+ ],
+ "rho0": -0.03,
+ "alpha": 0.05,
+ "n_explore": 11557,
+ "n_sim": 10632,
+ "block": 240,
+ "reps": 1000,
+ "se_null": 0.010215937522905604,
+ "crit": -0.01680419563142743,
+ "power": 0.903,
+ "empirical_size": 0.047,
+ "explore_partial_rho": -0.03292006592157199
+}

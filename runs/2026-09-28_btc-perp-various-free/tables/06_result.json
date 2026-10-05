@@ -1,0 +1,27 @@
+{
+ "n": 10629,
+ "spearman": -0.06398238963233883,
+ "boot_se": 0.00838506228321921,
+ "pearson": 0.004772399617793116,
+ "branch": "SUPPORTED",
+ "crit": -0.01526,
+ "spearman_trim99": -0.06544329641712796,
+ "n_trim99": 10522,
+ "tercile": {
+  "n": {
+   "low|r|": 3543.0,
+   "mid|r|": 3543.0,
+   "high|r|": 3543.0
+  },
+  "spearman": {
+   "low|r|": -0.010123781708506117,
+   "mid|r|": -0.06584937016935663,
+   "high|r|": -0.06552366951660689
+  }
+ },
+ "mean_gross_bp_per_hour": -0.43809159200683473,
+ "cost_events_covered": 3446,
+ "median_roundtrip_bp": 0.1679033194051091,
+ "mean_gross_bp_covered": 1.4790783831061862,
+ "mean_net_bp_covered": 1.2663629370323743
+}

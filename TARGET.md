@@ -6,53 +6,64 @@ Edit this file, then set STATUS to READY and click "Run now" on the routine. The
 DATA MUST BE PREPARED FIRST: `python C:\Users\User\eda-routine\prep_target.py <source> <name>` writes a copy that
 STOPS at the end of VAL (TEST and sealed rows are never copied). Point DATA at that copy, never at the source.
 
-STATUS: DONE C:\Users\User\eda-routine\runs\2026-09-25_btc-spot-1m-clean_v2
+STATUS: DONE C:\Users\User\eda-routine\runs\2026-09-28_btc-perp-various-free
 
-NAME: btc-spot-1m-clean
+NAME: btc-perp-various-free
 
-DATA: C:\Users\User\eda-routine\data\btcusdt_spot_1m_clean\btcusdt_spot_1m_clean.parquet
-      Read C:\Users\User\eda-routine\data\btcusdt_spot_1m_clean\CLEANING_LOG.md and CUT.json first, and look at
-      plots\ in that folder. 3,274,945 rows, 2017-08-17 04:00 to 2023-11-30 23:59 UTC, index `t` (tz-aware UTC).
+SOURCE_MODE: E
+            (Data-only. No inbox item. Every hypothesis this session tests must trace to a Phase 0 observation —
+            RUNBOOK_v3.md Phase 1, mode E. Do not pull a claim from SSRN/Substack/a lens this run.)
 
-PROVENANCE: Trade-based OHLCV bars (last-trade prices, NO bid/ask) from Binance BTCUSDT SPOT, 1-minute, UTC,
-            stamped at the bar's OPEN time, so a bar stamped T is knowable only at T + 60 s (use it from the NEXT
-            bar). Open-time stamping is INFERRED from month boundaries (every full month runs 00:00..23:59), not
-            confirmed against exchange documentation: Step 0 should re-check it.
+DATA: C:\Users\User\eda-routine\data\btcusdt_perp_bundle_MANIFEST.md
+      Read that manifest FIRST — it indexes seven prepared files (1m/30m/hourly perp klines, DVOL, historical
+      half-spread, funding, and long/short-ratio + open-interest metrics), each in its own folder under
+      C:\Users\User\eda-routine\data\ with its own CUT.json. NOT CLEANED (see manifest) — Phase 0 must do real
+      characterisation work, not assume this is pre-cleaned the way btcusdt_spot_1m_clean was.
 
-CLEANED?: yes, by clean_btc_spot.py, following finding-alphas\data-skill\tree-reference.md (gates 0-6, 8, 10; gate 7
-          N/A because there are no quotes). NO ROW WAS DROPPED. What the routine must know:
-          - `low` is NaN on 11 bars (source had low = 0.0); `quote` is NaN on 1,550 bars (source had quote = 0).
-          - Missing minutes (32,495, 0.98%, 74% of them in 2017) are LEFT MISSING. `gap_min` = minutes since the
-            previous bar; keep `gap_min == 1` for 1-minute returns.
-          - Flags, never altered: `flag_repeat_prev_bar` (37), `flag_close_outlier` (3), `flag_wick_gt3pct` (47).
-          - 2017 is a thin market (18.9% of bars are flat: open=high=low=close). Treat it with care.
-          - No spread, no cost: ROUND-TRIP COST is UNKNOWN for this file.
+PROVENANCE: All seven files are BTCUSDT PERPETUAL FUTURES (Binance USD-M) or a BTC derivatives index (Deribit
+            DVOL) — a DIFFERENT instrument from every earlier target (which used SPOT). Same underlying data
+            arc #047 ("POKER LENS on BTC", alpha_log.md) loaded — see the manifest for exactly which files and
+            why two of them needed custom prep instead of prep_target.py. Per-file venue/column/coverage detail
+            is in the manifest table, not repeated here.
+
+CLEANED?: NO. Raw VAL-cut copies only — see manifest for what Phase 0 needs to check itself (gaps, coverage
+          starts, the 1m file's missing VAL window, the metrics file's overlap with an already-tested signal
+          family).
 
 TRAIN_END: 2023-03-19
 VAL_START: 2023-03-25
 VAL_END:   2023-11-30
-VAL_NOTE:  Two reasons VAL is weak evidence. (1) BTC VAL was crossed twice by arc #047 (both pre-registered) and overlaps a
-           spent pooled row of the 21:00-23:00 UTC seasonality EDA (see _SEALED_HOLDOUT.md): SOFT-clean. (2) VAL is a
-           DIFFERENT REGIME from TRAIN: from 2023-04, median trades per minute fall ~8x (about 3,600 to 450, then
-           240-360) and the share of zero-return bars rises from <0.3% to 4-12% (CLEANING_LOG.md, Gate 4b; cause not
-           established). A lead about trade counts, volume or 1-minute tick behaviour can fail VAL for structural reasons.
+VAL_NOTE:  Same VAL weaknesses as every other BTC target here: soft-clean (arc #047 crossed it twice, both
+           pre-registered) and a different liquidity regime from TRAIN post-2023-04. Applies to whichever of the
+           seven files a hypothesis ends up using — check per-file VAL coverage in the manifest first, since
+           btcusdt_perp_1m has NONE.
 
-HYPOTHESIS: SEARCH
-            (Write SEARCH and the routine finds ONE claim itself on SSRN or Substack, following RUNBOOK step 1. Or write your own
-            claim in the form "a change in [data] predicts [price response] because [economic reason]", optionally with an SSRN or
-            Substack URL or title on a second line.)
+HYPOTHESIS: (blank — mode E. Hypotheses come only from Phase 0 observations on this bundle, per RUNBOOK_v3.md.
+            Do not write a claim here for this run.)
 
 ALREADY TESTED (names only, do NOT pick these): BTC hour-of-day seasonality (the 21:00-23:00 UTC window); BTC flow-imbalance and
             positioning / crowd-positioning claims; BTC-dislocation propagation to other coins; short-horizon reversal after taker
             imbalance. (Topic names only, taken from the holdout file; no results. Edit freely.)
+            NOTE for this run specifically: btcusdt_metrics_5m carries count_long_short_ratio and related
+            positioning fields — the same signal family as the "flow-imbalance and positioning" line above.
+            A Phase-0 observation on this file that turns into a hypothesis needs to say what it's doing
+            differently from that already-tested ground, not just re-arrive at it.
 
 PRE-APPROVED INSTALLS: none   (14c says ask before heavy dependencies; the routine cannot ask, so with "none" it installs
                               nothing. To pre-approve, list packages here, e.g. "pymc, arviz", and they go only into
                               C:\Users\User\eda-routine\.venv.)
 
-ROUND-TRIP COST (bp): <blank: cost unknown>
+ROUND-TRIP COST (bp): <blank — but NOT unknown this time: btc_hist_halfspread_hourly/ carries real hourly
+                      half-spread in bp. Price cost from that series at the trade minute, per event, per
+                      data-hygiene.md rule 3 — don't reduce it to one pooled number for this field.>
 
-NOTES: This is the routine's first test. Read the report against CLEANING_LOG.md: the routine should NOT re-discover the
-       cleaning findings as "leads" (missing minutes, the zero-quote block, the 2017 flat bars, the regime break).
-       Other prepared copies sit in data\ (btcusdtperp_5m, btcusdtperp_1m, btcusdt_spot_1m, btcusdt_spot_monthly). They
-       are RAW and TRAIN-only or uncleaned: do not use them as the target.
+NOTES: Prepared 2026-09-28 for a free-form, data-driven run (mode E) — see DESIGN_v3.md / RUNBOOK_v3.md. This is a
+       genuinely different instrument (perp, not spot) from every prior target, so do not assume any of the
+       btcusdt_spot_1m_clean findings (CLEANING_LOG.md) transfer here. Full per-file detail, known gaps, and
+       exactly how each file was prepared: C:\Users\User\eda-routine\data\btcusdt_perp_bundle_MANIFEST.md.
+       Other prepared copies sit in data\ (btcusdtperp_5m, btcusdtperp_1m, btcusdt_spot_1m, btcusdt_spot_monthly,
+       btcusdt_spot_1m_clean). They are RAW/uncleaned or a different target already run: do not use them here.
+       NAMING TRAP: btcusdtperp_1m (no underscore between usdt/perp; pre-existing, NOT part of this bundle) is
+       easy to confuse with btcusdt_perp_1m (underscored; IS part of this bundle, see manifest). Checked both —
+       the pre-existing one is also TRAIN-only (2020-01 to 2023-03-19, a different, later-starting source file
+       than this bundle's), so it adds nothing this bundle doesn't already have; not worth pulling in.
