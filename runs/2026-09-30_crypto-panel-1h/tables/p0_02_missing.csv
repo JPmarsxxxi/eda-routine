@@ -1,0 +1,11 @@
+coin,life_start,life_hours,missing,n_gaps,longest_gap_h,top_month,top_month_share,share_missing_when_all_others_missing,zero_vol_bars,zero_vol_pct,finding_i_gt128,finding_ii_month,finding_iii_zero_vol
+BTCUSD,2017-08-17 04:00:00+00:00,33932,121,25,33,2018-02,0.273,1.0,3,0.0088,False,False,False
+ETHUSD,2017-08-17 04:00:00+00:00,33932,121,25,33,2018-02,0.273,1.0,5,0.0147,False,False,False
+BNBUSD,2017-11-06 03:00:00+00:00,31989,115,24,33,2018-02,0.287,1.0,3,0.0094,False,False,False
+SOLUSD,2020-08-11 06:00:00+00:00,7770,13,7,4,2020-12,0.385,1.0,1,0.0129,False,False,False
+XRPUSD,2018-05-04 08:00:00+00:00,27688,81,22,10,2018-06,0.136,1.0,2,0.0072,False,False,False
+DOGEUSD,2019-07-05 12:00:00+00:00,17436,37,15,8,2019-08,0.216,1.0,1,0.0057,False,False,False
+ADAUSD,2018-04-17 04:00:00+00:00,28100,81,22,10,2018-06,0.136,1.0,2,0.0071,False,False,False
+LTCUSD,2017-12-13 03:00:00+00:00,31101,115,24,33,2018-02,0.287,1.0,2,0.0064,False,False,False
+BCHUSD,2019-11-28 10:00:00+00:00,13934,25,12,5,2020-02,0.24,1.0,1,0.0072,False,False,False
+DOTUSD,2020-08-18 23:00:00+00:00,7585,13,7,4,2020-12,0.385,1.0,1,0.0132,False,False,False
