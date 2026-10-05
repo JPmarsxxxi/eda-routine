@@ -42,7 +42,9 @@ library was missing is a defect the judge scores down. A well-chosen, validated 
 judge scores up.
 
 **Installs.** With `PRE-APPROVED INSTALLS: any` (the default), install what the claim needs:
-- Only into `C:\Users\User\eda-routine\.venv`. Only from **PyPI or conda-forge**, only packages with a public release
+- Only into `C:\Users\User\eda-routine\.venv`. If it does not exist, create it once with
+  `python -m venv --system-site-packages C:\Users\User\eda-routine\.venv` (so the base stack stays importable), log that in
+  DECISIONS.md, and run every cell that uses an install with `.venv\Scripts\python.exe`. Only from **PyPI or conda-forge**, only packages with a public release
   history, version **pinned** (`pkg==x.y.z`). No git URLs, no unpublished code, no install scripts from a paper's repo
   (port the method instead and say so in METHOD_SPEC.md).
 - Before first use, a **validation cell** `cells\install_<pkg>.md` (+ its script): the package must recover a known answer
