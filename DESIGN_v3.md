@@ -3,6 +3,37 @@
 Status: DRAFT for the user to read. RUNBOOK.md (v2) is untouched and stays the live one until v3 is approved and built.
 Written 2026-09-28.
 
+## Amendment v3.1 (2026-10-02): several CONFIRM folds instead of one CONFIRM slice
+
+Supersedes "The funnel" below wherever they differ; RUNBOOK_v3.md carries the operational rules.
+
+**Evidence, from the first v3 run (`runs/2026-09-30_crypto-panel-1h`).** That run stopped after 8 of 30 cells and ~45 minutes, with
+4 of 7 hypotheses OPEN, under a stop it called S2 where every expected shift was 0.0 pp. Nothing was settled. Every data-born
+hypothesis had used its one CONFIRM opening, so no test was allowed. Two of its own decisions show the same wall: D10 (a child
+born on CONFIRM could only be tested backwards on EXPLORE, and never reach VAL) and D11 (a child whose statistic CONFIRM had
+already shown could not be tested at all). Separately, five of its six supported results hit the 10x cap on a
+significance-only rule, so H5 reached 0.985 on an effect half its own economic threshold, present only in the last 10 months
+of CONFIRM.
+
+**Change.**
+- TRAIN = EXPLORE + n CONFIRM folds (n = 3 by default, at least 2), chronological, embargoed, declared from coverage counts.
+- Per hypothesis: never its birth slice or a slice where its statistic was already seen (`seen_on`); each slice at most once;
+  folds in order (no shopping for the favourable fold). A child born on fold Cj uses EXPLORE and the other folds.
+- Weights from different folds multiply (separate samples); the same fold twice is guard (a). Power is simulated at the fold's
+  own size, so each fold carries less weight than v3.0's single CONFIRM did.
+- New state ladder: OPEN / HIGH (posterior > 85%, unconfirmed) / HIGH-CONFIRM (> 85% AND supported on >= 2 folds AND refuted on
+  none) / HIGH-VAL. HIGH stays pickable, so a hypothesis that looks strong after one fold still has to face the others; the
+  per-fold results are the decay-first check.
+- Every `supported` branch needs a size condition, not only a significance condition.
+- New stop rule S4 = slices exhausted, which gate.py verifies by recomputing what is still admissible. S2 now requires that
+  admissible tests exist.
+
+**Risks this adds, and the guard.** More openings per hypothesis means more looks: every fold opening counts in K, and VAL still
+requires two supported folds and no refuted fold. Adjacent folds share a regime, so their weights are not fully independent: the
+10x per-cell cap and the HIGH-CONFIRM requirement of a clean fold record limit how far two correlated passes can carry a
+hypothesis. `seen_on` could be padded to close slices and force an early S4: the judge checks every `seen_on` against the cell
+that displayed it.
+
 ## Why v3 exists (evidence from v2, run 2026-09-25_btc-spot-1m-clean_v2)
 
 v2 tested ONE claim, ran 4 scored cells, hit its first refutation (C5) and stopped. Six sub-claims were left UNTESTED

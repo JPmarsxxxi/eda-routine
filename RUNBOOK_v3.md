@@ -35,19 +35,39 @@ TRAIN and VAL only are supplied; there is no TEST here. Data lives only under C:
 CUT.json. Never open C:\Users\User\backtest_engine\backtest_engine2\data\. A row later than VAL_END -> STOPPED.md. Crypto: read
 HOLDOUT_RULES.md before opening any file; never read backtest_engine2\_SEALED_HOLDOUT.md.
 
-**v3 adds a THIRD internal cut, inside TRAIN, because v3 chases observations and that needs somewhere safe to do it:**
+**v3 cuts TRAIN into an EXPLORE slice and several CONFIRM folds, because v3 chases observations and each one needs more than one
+clean place to be tested:**
 
-- **EXPLORE** and **CONFIRM** — a chronological split of TRAIN. Declare it in `SPLITS.md` from coverage counts only, BEFORE
-  any forward return is measured, and never revise it after one is (same mechanics as the x101 runs' `x101_SPLITS.md` /
-  `G.declare_split`). Phase 0 and all hypothesis-generation happen on EXPLORE. A hypothesis born by looking at EXPLORE may be
-  CONFIRMED only on CONFIRM, never re-tested on the slice that produced it.
-  - **v2's TARGET-supplied hypothesis is an exception**: it was born outside this data (a paper, a lens, an idea), so it may be
-    tested directly on EXPLORE+CONFIRM pooled at CONFIRM time — it does not need the split, because EXPLORE did not produce it.
-    Only DATA-BORN hypotheses (Phase 0 observations, or a redirect after a refutation) must open CONFIRM as their first look.
-- **VAL** — unchanged from v2: opened ONCE per session, at Phase 3, for hypotheses that reached HIGH after CONFIRM. Rule
+- **EXPLORE, C1, C2, ... Cn** — a chronological split of TRAIN: EXPLORE first, then n CONFIRM folds, an embargo between each
+  pair at least as long as the longest horizon the run intends to use. **n = 3 by default; n = 2 only if a three-way cut would
+  leave a fold under the minimum length SPLITS.md states (from coverage counts); never fewer than 2.** Declare it in `SPLITS.md`
+  from coverage counts only, BEFORE any forward return is measured, and never revise it after one is (same mechanics as the
+  x101 runs' `x101_SPLITS.md` / `G.declare_split`). `SPLITS.md` carries the machine-readable block `gate.py` parses:
+
+  ```
+  slices:
+  - EXPLORE 2017-08-17 2021-07-01
+  - C1 2021-07-08 2022-01-01
+  - C2 2022-01-08 2022-07-01
+  - C3 2022-07-08 2023-03-20
+  - VAL 2023-03-25 2023-12-01
+  ```
+  (from inclusive, to exclusive, UTC dates; slices in this order, non-overlapping.)
+
+- **The slice rules, per hypothesis** (these replace v3.0's "CONFIRM opened once per hypothesis"):
+  1. **Never on its birth slice.** A hypothesis is never tested on the slice it was born on (`born_on`), nor on any slice where
+     its defining statistic has already been displayed (`seen_on`, e.g. as a descriptive in its parent's cell). EXPLORE-born
+     hypotheses therefore start on C1; a child born on C2 may use EXPLORE, C1 and C3.
+  2. **Each slice once.** A hypothesis opens each slice at most once. A second test of the same sub-claim on the same slice is
+     guard (a) — one piece of evidence.
+  3. **No fold shopping.** A hypothesis opens its CONFIRM folds in order: its next CONFIRM test is always on the lowest-numbered
+     fold it is still eligible for. It may not skip a fold it could use, because it expects a later one to look better.
+  4. **Source-born hypotheses** (modes A/B/C/D, `born_on: SOURCE ...`) were not produced by this data, so EXPLORE is an ordinary
+     slice for them: they may open EXPLORE once, then the folds in order, under the same rules.
+- **VAL** — unchanged from v2: opened ONCE per session, at Phase 3, for hypotheses that reached HIGH-CONFIRM (below). Rule
   written before opening. VAL_NOTE from TARGET.md quoted beside every VAL number. Never described as out-of-sample proof.
 
-Every CONFIRM opening and every VAL opening is a row in `ATTEMPTS.md` and counts toward K, no exceptions.
+Every slice opening (EXPLORE test, each CONFIRM fold, VAL) is a row in `ATTEMPTS.md` and counts toward K, no exceptions.
 
 ---
 
@@ -120,7 +140,8 @@ observations only). An entry missing any field below is not accepted — fix it 
   (lens rule 6).
 - **Rivals** — at least two other explanations for the same pattern (volatility, volume, time-of-day, a twin series, or a
   floor-Q3 impostor).
-- **Born on** — source name, or EXPLORE + the `OBSERVATIONS.md` number it came from.
+- **Born on** — `SOURCE` + source name, or EXPLORE + the `OBSERVATIONS.md` number it came from (or, for a child, the slice
+  and cell that produced it).
 - **Prior + anchor + trust arithmetic** — a stated source (tracker base rate at ~30% trust, a published replication rate, an
   uninformative default, a mechanism argument) and the arithmetic that turned it into a number. No anchor -> does not count.
 
@@ -142,19 +163,24 @@ question: <...>
 hypothesis: <a change in [...] predicts [...] because [...]>
 forbids: <what we would NOT see if false | none - NO-STORY>
 rivals: <rival 1>; <rival 2>[; ...]
-born_on: <EXPLORE #k | source name>
+born_on: <SOURCE <name> | EXPLORE #k | C<j> cell_NN | EXPLORE cell_NN>
+seen_on: <none | C<j>[, C<k> ...]>
 prior: <0.xx>
 anchor: <source + trust arithmetic, one line>
 posterior: <0.xx>
-state: <OPEN | LOW | HIGH-EXPLORE | HIGH-CONFIRM | HIGH-VAL>
+state: <OPEN | LOW | HIGH | HIGH-CONFIRM | HIGH-VAL>
 evidence:
-- cell_NN: <branch> weight=<w> capped=<yes/no> -> posterior <p>
+- cell_NN: <slice> <branch> weight=<w> capped=<yes/no> -> posterior <p>
 - ...
 ```
 
+`born_on` starts with the slice name (`SOURCE`, `EXPLORE`, `C1`, ...) — `gate.py` reads that first word. `seen_on` lists every
+slice on which this hypothesis's defining statistic was already displayed before it had a rule file of its own (typically a
+descriptive printed in its parent's cell); `none` if there is none. Those slices are closed to it, like its birth slice.
+
 `no_story: yes` is written as an extra key (after `state`) only for NO-STORY entries; its absence means the hypothesis has a
-mechanism. A NO-STORY entry with `forbids: none - NO-STORY` may still open CONFIRM only once it has been re-written with a
-real `forbids` line — until then `gate.py` blocks it from any CONFIRM-labeled cell.
+mechanism. A NO-STORY entry with `forbids: none - NO-STORY` may still open a CONFIRM fold only once it has been re-written with
+a real `forbids` line — until then `gate.py` blocks it from any CONFIRM-fold cell.
 
 ---
 
@@ -162,72 +188,107 @@ real `forbids` line — until then `gate.py` blocks it from any CONFIRM-labeled 
 
 For each iteration:
 
-1. **Pick the next test.** Among all OPEN hypotheses (prior/posterior between 5% and 85%), choose the one whose next test has
-   the largest expected belief shift; break ties by cheapest test. Write the arithmetic in `cell_NN_rule.md`.
-2. **Write `cells\cell_NN_rule.md` FIRST** (before any code): the sub-claim, the 14c menu row + tool named, the decision rule
-   with three branches and numbers, and the **evidence weight** for each branch:
+1. **Pick the next test.** A hypothesis is *pickable* if its state is OPEN or HIGH and it still has an admissible slice:
+   EXPLORE or a CONFIRM fold it has not opened, that is not its birth slice and not in its `seen_on` (for CONFIRM, only the
+   lowest such fold counts — slice rule 3). Among pickable hypotheses, choose the test with the largest expected belief
+   shift; break ties by cheapest test. Write the arithmetic in `cell_NN_rule.md`. HIGH hypotheses stay pickable on purpose:
+   one fold is not confirmation, and running the remaining folds is the decay-first check.
+2. **Write `cells\cell_NN_rule.md` FIRST** (before any code). It starts with three header lines `gate.py` parses:
+   ```
+   hypothesis: H<n>
+   slice: <EXPLORE | C<j> | VAL>
+   kind: <test | redirect | val>
+   ```
+   then the sub-claim, the 14c menu row + tool named, the decision rule with three branches and numbers, and the **evidence
+   weight** for each branch:
    - `weight(supported) = power / alpha`, `weight(refuted) = (1 - power) / (1 - alpha)`, `weight(inconclusive) = 1`.
-   - `power` comes from a stated simulation at the smallest economically meaningful effect size — write the simulation's own
-     one-line result in the rule file, not just the number.
-   - **Guard (a):** if this cell re-tests a sub-claim an earlier cell in this session already tested on the same sample,
-     it is the SAME piece of evidence — take the stronger test's weight, do not multiply both in.
+   - `power` comes from a stated simulation at the smallest economically meaningful effect size, **at this slice's own sample
+     size** (a fold is shorter than v3.0's single CONFIRM; its power is lower and the weight must say so) — write the
+     simulation's own one-line result in the rule file, not just the number.
+   - **The rule must carry a size condition, not just a significance condition.** "supported" requires the effect to clear
+     the stated smallest economically meaningful size (or a stated fraction of it, argued in the rule file); a significant
+     effect below that size is `inconclusive`, never `supported`. (The first v3 run reached 0.985 on an effect half its own
+     economic threshold, because its rules only asked for z < -1.645.)
+   - **Guard (a):** if this cell re-tests a sub-claim an earlier cell in this session already tested on the SAME slice, it is
+     the same piece of evidence — take the stronger test's weight, do not multiply both in. Tests on DIFFERENT folds are
+     separate pieces of evidence and their weights multiply — that is what the folds are for.
    - **Guard (b):** no single cell may move a hypothesis's odds by more than 10x either direction; cap the weight before
      applying it and say you capped it.
 3. **Then `cells\cell_NN_announce.md`** in the 14c template, referencing the rule file.
 4. **Run the cell** — 14c cell loop, guard for every load, plot + tables, `ATTEMPTS.md` row.
-5. **State the result against the pre-committed rule** in `cells\cell_NN_result.md`: the branch that fired, the deciding
-   number, and the weight from step 2 applied (capped or not). Do not soften it.
-6. **Update `BELIEFS.md`**: posterior odds = prior odds × the branch's weight (capped per guard b). Convert back to a
-   probability and record it next to the prior.
+5. **State the result against the pre-committed rule** in `cells\cell_NN_result.md`. It starts with two header lines
+   `gate.py` parses:
+   ```
+   branch: <supported | refuted | inconclusive>
+   weight_applied: <w after the cap; 1 for redirect cells>
+   ```
+   then the deciding number and the weight from step 2 (capped or not). Do not soften it.
+6. **Update `BELIEFS.md`**: posterior odds = prior odds × the product of every `weight_applied` in its evidence chain. Convert
+   back to a probability and record it; set `state` from the posterior and the fold record (below). `gate.py` recomputes
+   this chain from the result files and refuses a posterior that does not match.
 7. **Spawn.** Ask "what does this result suggest?" and write any new hypothesis as a CHILD entry in `BELIEFS.md` (same
-   required fields as Phase 1, parent hypothesis named, born-on = this cell's slice + result).
+   required fields as Phase 1, parent hypothesis named, `born_on` = this cell's slice + cell, `seen_on` = any other slice where
+   its statistic is already on screen). A child born on fold Cj is tested on EXPLORE and the other folds — it is not stuck.
 8. **On refutation of a sub-claim the hypothesis can't survive without** (14c 3.2, scoped per-hypothesis in v3, not
-   session-wide): drop that hypothesis's probability toward LOW via steps 6-7, then run a **mandatory redirect cell**:
-   "where does the data actually point?" — opposite sign? one era/horizon/subset only? absent everywhere? Its finding is
-   captured as a NEW spawned hypothesis (step 7), with its OWN rule file — never a rewrite of the dead one, and it does not
-   get to inherit the dead one's identity or arc.
+   session-wide): drop that hypothesis's probability toward LOW via steps 6-7, then run a **mandatory redirect cell**
+   (`kind: redirect`, `weight_applied: 1`): "where does the data actually point?" — opposite sign? one era/horizon/subset
+   only? absent everywhere? It may look at EXPLORE, or at a slice this hypothesis has already opened (that data is already
+   seen) — never at a fold it has not opened. Its finding is captured as a NEW spawned hypothesis (step 7), born on the slice
+   the redirect looked at, with its OWN rule file — never a rewrite of the dead one, and it does not inherit the dead one's
+   identity or arc.
 
-**Resolved states**, used only to route what happens next — never reported as a kill (that stays the user's call):
+**States**, used only to route what happens next — never reported as a kill (that stays the user's call):
 - **LOW** — posterior < 5%. Closed for this session; no further cells against it.
-- **HIGH** — posterior > 85%.
-  - Reached on EXPLORE data → queue for its ONE CONFIRM opening (state the rule before opening).
-  - Passed CONFIRM → queue for the Phase 3 VAL check.
-- **OPEN** — everything between 5% and 85%. Eligible for the next pick in step 1.
+- **OPEN** — posterior 5%-85%. Pickable while it has an admissible slice.
+- **HIGH** — posterior > 85%, not yet confirmed. Pickable while it has an admissible slice.
+- **HIGH-CONFIRM** — posterior > 85% AND `supported` on at least 2 CONFIRM folds AND `refuted` on none. Queued for VAL. (A
+  hypothesis refuted on any fold cannot be HIGH-CONFIRM however high its posterior: an effect that lives in one fold is a
+  regime story, and the report says so.)
+- **HIGH-VAL** — was HIGH-CONFIRM and its VAL cell came back `supported`. (VAL refuted or inconclusive -> it stays
+  HIGH-CONFIRM or drops by its posterior, and the report states the VAL failure.)
 
 ---
 
 ## STOP RULES — a session ends ONLY when one of these fires; write `STOP_REASON.md` naming which, with the numbers
 
-- **S1 — all resolved.** Every hypothesis in `BELIEFS.md` is LOW, or HIGH-and-carried-through-VAL.
+- **S1 — all resolved.** Every hypothesis in `BELIEFS.md` is LOW or HIGH-VAL.
 - **S2 — beliefs have settled.** Three consecutive picks (step 1) where the best available test's expected shift is ≤ 3
-  percentage points on every OPEN hypothesis.
+  percentage points on every pickable hypothesis. S2 requires that admissible tests still exist — they are just not worth
+  running.
 - **S3 — hard cap.** 30 test cells (Phase 0 cells don't count) OR 3 wall-clock hours, whichever comes first.
+- **S4 — slices exhausted.** No hypothesis is pickable: every one is LOW, HIGH-CONFIRM/HIGH-VAL, or has used every slice it is
+  allowed. (The first v3 run reported this case as "S2 with 0.0 pp shifts"; it is its own rule now, and `gate.py` checks it
+  by recomputing admissibility rather than taking the claim.) Hypotheses left OPEN or HIGH under S4 are reported as needing a
+  fresh slice — opening TEST is the user's call.
 
-**Not allowed:** stopping on a single refutation; stopping with OPEN hypotheses and none of S1/S2/S3 true; stopping because the
-inbox item "felt" exhausted without a stated S1/S2/S3.
+**Not allowed:** stopping on a single refutation; stopping with a pickable hypothesis and none of S2/S3 true; stopping because
+the inbox item "felt" exhausted without a stated S1-S4.
 
 ### `STOP_REASON.md` format — fixed, so `gate.py` can check the claim against `BELIEFS.md`
 
 ```
-rule: S1 | S2 | S3
+rule: S1 | S2 | S3 | S4
 open_count: <n>          # count of BELIEFS.md entries with state: OPEN, at the moment of stopping
 low_count: <n>
-high_count: <n>
-detail: <one line — S1: nothing to add; S2: the three picks and their expected shifts; S3: cells used / minutes elapsed>
+high_count: <n>          # every state starting HIGH
+detail: <one line — S1: nothing to add; S2: the three picks and their expected shifts; S3: cells used / minutes elapsed;
+         S4: each non-resolved hypothesis and why it has no admissible slice>
 ```
 
 `gate.py` recomputes `open_count`/`low_count`/`high_count` from `BELIEFS.md` itself and refuses if they don't match what's
-written here — the numbers in this file are a claim, and the gate is what checks the claim rather than trusting it.
+written here — the numbers in this file are a claim, and the gate is what checks the claim rather than trusting it. The counts
+are the FINAL state, after the Phase 3 VAL cells.
 
 ---
 
 ## PHASE 3 — close
 
-1. **VAL pass.** For every hypothesis queued HIGH-after-CONFIRM, open VAL once, rule written first, VAL_NOTE quoted beside the
-   result. Report even a failure.
+1. **VAL pass.** For every HIGH-CONFIRM hypothesis, open VAL once (`kind: val`, `slice: VAL`), rule written first, VAL_NOTE
+   quoted beside the result. Every VAL cell is numbered after every test and redirect cell. Report even a failure.
 2. **`REPORT.md`**, one page: source mode and item used; the full belief table (hypothesis, prior→posterior, evidence chain
-   with slice per step, final state); decay-first shape and cost line for anything that reached CONFIRM or VAL (v2's Step 1b
-   additions, unchanged); K = every EXPLORE/CONFIRM/VAL look counted, flagged for the downstream DSR deflation; one part-0
+   with slice per step, final state); a fold table for anything that opened a CONFIRM fold (branch and effect per fold — this
+   is the decay-first shape); the cost line for anything that reached HIGH or VAL (v2's Step 1b additions, unchanged);
+   K = every EXPLORE/fold/VAL look counted, flagged for the downstream DSR deflation; one part-0
    `1b finding` block per hypothesis that moved off its prior; the still-open list; leads (NO-STORY entries, observations not
    chased this session).
 3. **`INBOX_PROPOSALS.md`** — any new idea/paper/group worth a future session goes here, never written into `INBOX.md`
@@ -242,15 +303,19 @@ written here — the numbers in this file are a claim, and the gate is what chec
 
 - **`C:\Users\User\eda-routine\gate.py`** — deterministic, modeled on `eda_guard.py`. Run it (`python gate.py <run_dir>`)
   before `STATUS: DONE` may be written; it must print `PASS`. Checks: every required file/section from Phases 0-3 exists;
-  every `cell_NN_rule.md` predates its `cell_NN_result.md`; every `BELIEFS.md` entry has all required fields in the fixed
-  format (above) including a sourced prior; every HIGH entry is named in some cell's rule file; `STOP_REASON.md`'s
-  open/low/high counts and S1/S2/S3 claim match what `BELIEFS.md` actually shows. If it prints `FAIL`, fix what it names —
+  `SPLITS.md` declares EXPLORE, at least 2 ordered non-overlapping CONFIRM folds and VAL; every `cell_NN_rule.md` predates its
+  `cell_NN_result.md` and carries the hypothesis/slice/kind header; every `BELIEFS.md` entry has all required fields in the
+  fixed format (above); the slice rules (never the birth or `seen_on` slice, each slice once, folds in order, redirects only
+  on EXPLORE or an already-opened slice, no NO-STORY entry on a fold); every posterior equals its prior times the
+  `weight_applied` chain, each weight within the 10x cap; every state matches its posterior and fold record; VAL only for
+  HIGH-CONFIRM, after every test cell; `STOP_REASON.md`'s counts and S1-S4 claim match what `BELIEFS.md` and the cells
+  actually show. If it prints `FAIL`, fix what it names —
   do not write DONE around a failing gate, and do not edit a result file to make an mtime check pass; fix the process
   defect it's pointing at.
 - **`eda-v3-judge` agent** (`C:\Users\User\eda-routine\.claude\agents\eda-v3-judge.md`) — read-only, run AFTER `gate.py`
   passes. Checks what `gate.py` structurally cannot: whether an evidence weight's power/alpha was real and applied
   correctly, whether the stop was actually earned (not a disguised early stop dressed up as S2/S3), whether the
-  EXPLORE/CONFIRM funnel was really obeyed per hypothesis, whether a spawned "new" hypothesis was a genuine redirect or a
+  EXPLORE/fold funnel was really obeyed per hypothesis, whether a spawned "new" hypothesis was a genuine redirect or a
   rewrite of a dead claim, and whether a NO-STORY lead was reported as no more than a lead. Returns PASS/FAIL with numbered
   issues. A FAIL here does not block `STATUS: DONE` mechanically the way `gate.py` does — it is read by the human review
   that follows every `DONE`, same as a `FAIL-MINOR`/`FAIL-MAJOR` from the finding-alphas judges.
@@ -261,6 +326,7 @@ Run both at the end of Phase 3, in that order — `gate.py` first since the judg
 
 ## NEVER (carried from 14c and v2, plus v3's own)
 Run EDA as a "show what you can do" exercise; present a finding with no pre-committed rule; silently ignore a refuted
-sub-claim; test a NO-STORY lead on CONFIRM without a forbidding prediction; re-test a hypothesis on the EXPLORE slice that
-produced it; multiply the same evidence in twice (guard a); let one cell move a probability past the 10x cap (guard b); stop
-with OPEN hypotheses and no S1/S2/S3; build a generic `eda.py`.
+sub-claim; test a NO-STORY lead on a CONFIRM fold without a forbidding prediction; test a hypothesis on the slice that produced
+it or a slice where its statistic was already seen; open the same slice twice for one hypothesis; skip a fold to reach a
+later one; call a significant-but-too-small effect "supported"; multiply the same evidence in twice (guard a); let one cell
+move a probability past the 10x cap (guard b); stop with a pickable hypothesis and no S2/S3; build a generic `eda.py`.

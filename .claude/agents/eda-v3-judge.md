@@ -26,11 +26,16 @@ Read `STOP_REASON.md` and `BELIEFS.md`.
    count; you check the entries are the RIGHT ones, not just the right number.)
 2. **S2 claimed** — does `STOP_REASON.md`'s `detail` line name three consecutive picks and their
    expected-shift numbers, each ≤ 3 points? A claimed S2 with no numbers, or with numbers that don't
-   look like three consecutive picks, is a FAIL.
+   look like three consecutive picks, is a FAIL. (A "settled" stop with no admissible test left is S4,
+   and gate.py rejects that as S2.)
 3. **S3 claimed** — does `detail` state cells used or minutes elapsed, and does it actually meet or
    exceed the cap (30 cells / 3 hours)? An S3 claimed well under the cap is a FAIL — that is a
    disguised early stop.
-4. **The forbidden stop.** Scan `ATTEMPTS.md` and the cell results in order. Did the run stop
+4. **S4 claimed** — gate.py confirmed no hypothesis has an admissible slice left. Check HOW the slices
+   closed: every `seen_on` entry that closed a fold must point at a real earlier cell that displayed
+   that statistic there (see C3). A `seen_on` added with no such cell behind it manufactures exhaustion
+   and is a FAIL.
+5. **The forbidden stop.** Scan `ATTEMPTS.md` and the cell results in order. Did the run stop
    immediately after a single refutation, with no redirect cell and no other hypothesis picked up
    afterward? That is a FAIL regardless of what `STOP_REASON.md` claims — a legitimate-looking
    STOP_REASON.md written after an illegitimate stop is still a FAIL, and is worse than an honest one.
@@ -52,19 +57,21 @@ For every `cells\cell_NN_rule.md`:
 
 ## Checklist C — the funnel was obeyed
 
-1. For every hypothesis whose `born_on` names an `OBSERVATIONS.md` number (i.e. born on EXPLORE): is
-   its first test against that specific hypothesis on the **CONFIRM** slice, never EXPLORE? Check the
-   cell's `_rule.md` or `_announce.md` for which slice it uses. A data-born hypothesis "confirmed" on
-   EXPLORE is a FAIL — that is the exact self-confirmation the split exists to prevent.
-2. **The TARGET-supplied exception.** A hypothesis whose `born_on` names a source outside this data
-   (the mode B/C/D/A source, not an observation number) may be tested on EXPLORE+CONFIRM pooled — do
-   not fail that; RUNBOOK_v3.md's HOLDOUTS section states this exception explicitly.
-3. Was CONFIRM opened **more than once** for the same hypothesis id? Any hypothesis with two or more
-   CONFIRM-slice cells against it is a FAIL — one opening only.
-4. Was VAL opened for anything **not** queued `HIGH-CONFIRM` at the time VAL was opened? Check the
-   state history implied by `BELIEFS.md` (a HIGH-VAL entry must have passed through HIGH-CONFIRM
-   first — if you cannot tell from the file which order things happened in, say so as inconclusive
-   rather than guessing, and flag it as a recording gap).
+`gate.py` already checked the slice rules against each cell's `hypothesis:` / `slice:` / `kind:` header (never the birth or
+`seen_on` slice, each slice once, folds in order, VAL only for HIGH-CONFIRM). Your job is whether those headers and the
+`born_on` / `seen_on` fields tell the truth.
+
+1. **Headers match the work.** For each cell, does the `_announce.md` and the code it names load the slice the rule header
+   claims? A header saying `slice: C2` on a cell whose code loads C1 or pools folds is a FAIL.
+2. **`born_on` is honest.** For each child, find the cell where its idea first appears. Was that cell on the slice its
+   `born_on` names? A child noticed on C1 but recorded as born on EXPLORE (which would free C1 for it) is a FAIL.
+3. **`seen_on` is complete.** Did any earlier cell — the parent's descriptives, a redirect, a pre-registered side table —
+   already print this hypothesis's defining statistic on some fold, without that fold in its `seen_on`? Then a later "test"
+   on that fold re-read a number already seen. FAIL, naming the cell that showed it first.
+4. **Redirects stayed redirects.** A `kind: redirect` cell carries weight 1. If its result moved a posterior anyway, or a
+   redirect on an already-opened fold was then cited as the evidence for its child, that is a FAIL.
+5. **The size condition.** Does every rule file's `supported` branch require the effect to clear a stated economic size, as
+   RUNBOOK_v3.md Phase 2 step 2 requires? A `supported` branch that is significance-only is a FAIL.
 
 ## Checklist D — spawned hypotheses are genuinely new, not rescues
 
