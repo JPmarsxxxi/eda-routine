@@ -1,0 +1,27 @@
+{
+ "cell": 5,
+ "slice": "C3",
+ "n_blocks": 44,
+ "blocks_dropped": 41,
+ "coins": [
+  "ADAUSD",
+  "BNBUSD",
+  "BTCUSD",
+  "DOGEUSD",
+  "DOTUSD",
+  "ETHUSD",
+  "LTCUSD",
+  "SOLUSD",
+  "XRPUSD"
+ ],
+ "T_bp": 117.11111111111109,
+ "spread_bp": -19.036952254658114,
+ "sd_bp": 363.8696830994597,
+ "t": -0.34703868287566597,
+ "mean_ic": -0.035227272727272746,
+ "ic_t": -0.715230140202858,
+ "share_negative": 0.5,
+ "first": "2022-07-16",
+ "last": "2023-03-13",
+ "branch": "refuted"
+}

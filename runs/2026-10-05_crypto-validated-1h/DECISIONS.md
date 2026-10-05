@@ -35,3 +35,16 @@ the per-family lag is written in DATA_CARD.md.
 ## D7 — Costs
 TARGET.md ROUND-TRIP COST (bp, 24h hold incl. one rollover night): BTC 18.9, ETH 25.4, LTC 36.5, ADA/DOGE/DOT/BNB/SOL
 ~46 (midpoint of "~45-47"), BCH 65.5, XRP 68.6. 72h hold = 24h figure + 2 x 8.2. Not the `ftmo_spread_rt_bp` column.
+
+## D8 — Power-simulation sample sizes
+code/power_sims.py built the daily panel over all of TRAIN+VAL in memory to COUNT valid windows per fold (notna() of the
+validity mask only). No fold or VAL return value was printed, summarised or used; only EXPLORE return values fed the
+bootstrap. After this, every cell cuts primary rows to its own slice window before computing any return.
+
+## D9 — Session interruption
+The session was cut by a server-side API overload (529) after cell_07's script ran and before its result file was
+written. Resumed from the run folder's files; cell_07 was NOT re-run — its result file reports the single run's output.
+
+## D10 — One redirect per refutation
+RUNBOOK step 8 is read as: every refutation of a sub-claim the hypothesis cannot survive without (each fold refutation)
+is followed by a redirect on that slice, with a FIXED look menu per hypothesis written before its first redirect.

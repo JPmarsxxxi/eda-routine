@@ -50,11 +50,16 @@ def ts(s):
 
 # ------------------------------------------------------------------ primary target
 
-def hourly(cell, coins=COINS):
-    """Long frame t, coin, price, qvol, src, ok (valid 1h log return r1 at t), r1."""
+def hourly(cell, coins=COINS, window=None):
+    """Long frame t, coin, price, qvol, src, ok (valid 1h log return r1 at t), r1. window=(a, b): rows cut to [a, b)
+    right after the guarded load, before any return is computed."""
     out = []
     for c in coins:
         d = load(f"primary/validated_{c}.parquet", cell)
+        if window is not None:
+            d = d[(d._t >= window[0]) & (d._t < window[1])]
+            if len(d) == 0:
+                continue
         d = d.sort_values("_t")
         full = pd.DataFrame(index=pd.date_range(d._t.min(), d._t.max(), freq="h"))
         d = d.set_index("_t").reindex(full.index)
