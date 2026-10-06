@@ -6,9 +6,9 @@ Edit this file, then set STATUS to READY and click "Run now" on the routine. The
 DATA MUST BE PREPARED FIRST: `python C:\Users\User\eda-routine\prep_target.py <source> <name>` writes a copy that
 STOPS at the end of VAL (TEST and sealed rows are never copied). Point DATA at that copy, never at the source.
 
-STATUS: DONE runs/2026-10-05_crypto-101alphas
+STATUS: READY
 
-NAME: crypto-101alphas
+NAME: crypto-101alphas-b2
 
 DATA: /home/user/eda-routine/data/crypto_panel_validated_2026-10-05/   (cloud session; on the desktop this is
       C:\Users\User\eda-routine\data\crypto_panel_validated_2026-10-05\). Read README.md, MANIFEST.csv and CUT.json there FIRST.
@@ -48,24 +48,38 @@ VAL_NOTE:  VAL is weak evidence. (1) BTC VAL was crossed twice by earlier work a
            TRAIN (2023 was calm; from 2023-04 BTC's 1-minute trade counts fell ~8x, cause not established).
 
 SOURCE_MODE: B
-            (Set by the user's assistant on 2026-10-05 at the user's request: "pick about 5 [alphas] that would apply to crypto
-            and EDA them". Paper = INBOX.md section B entry 1601.00991v3.pdf, local file in this repo root.)
+            (Set by the user's assistant on 2026-10-06 at the user's request: "pick new formulas from the paper" and run the
+            EDA again under RUNBOOK_v3 v3.2. Paper = INBOX.md section B entry 2, the same local file 1601.00991v3.pdf, second
+            batch of alphas; the first batch's five are in ALREADY TESTED.)
 
-HYPOTHESIS: The user asked for these FIVE alphas from the paper (Appendix A), chosen because they need only OHLCV + vwap (no
-            industry neutralisation, no market cap) and do not repeat an ALREADY TESTED topic. Phase 1 = exactly these five, one
-            candidate each (the 6-candidate cap still holds). Formulas verbatim from the paper:
-            - Alpha#101: ((close - open) / ((high - low) + .001))        paper: delay-1 MOMENTUM (close > open -> long next day)
-            - Alpha#42:  (rank((vwap - close)) / rank((vwap + close)))   paper: delay-0 MEAN-REVERSION, traded at the close
-            - Alpha#2:   (-1 * correlation(rank(delta(log(volume), 2)), rank(((close - open) / open)), 6))
-            - Alpha#6:   (-1 * correlation(open, volume, 10))
-            - Alpha#4:   (-1 * Ts_Rank(rank(low), 9))
-            Operators: paper Appendix A.1 (rank = cross-sectional over the 10 coins; correlation/ts_rank = time-series over the past
-            d DAYS). Translation to crypto (24/7): a "day" = one UTC calendar day built from the 1h bars of spot/binance_<COIN>
-            (open = first hour's open, high/low = max/min, close = last hour's close, volume = sum of vol, vwap = sum(quote_vol) /
-            sum(vol)). The SIGNAL uses those raw Binance daily OHLCV; the RESPONSE (forward return) uses primary/validated_<COIN>
-            `price` only. delay-1 alphas: signal from day d, return from end of day d to end of day d+1 (00:00 UTC to 00:00 UTC).
-            delay-0 (Alpha#42): same response window, and note that in crypto "the close" of day d is the open of day d+1.
+HYPOTHESIS: FIVE NEW alphas from the paper (Appendix A.1), chosen because they need only OHLCV (no vwap, no industry
+            neutralisation, no market cap) AND are scale-free across coins (every price enters as a ratio or a per-coin
+            time-series rank, so the price-level problem of the first batch, #42/#4, cannot arise), AND are not one of the
+            first batch or an ALREADY TESTED topic. Phase 1 = exactly these five, one candidate each (the 6-candidate cap
+            still holds). Formulas verbatim from the paper:
+            - Alpha#30: (((1.0 - rank(((sign((close - delay(close, 1))) + sign((delay(close, 1) - delay(close, 2)))) +
+                        sign((delay(close, 2) - delay(close, 3)))))) * sum(volume, 5)) / sum(volume, 20))
+                        (3-day up/down streak, faded, scaled by the coin's 5d/20d volume trend; delay-1)
+            - Alpha#35: ((Ts_Rank(volume, 32) * (1 - Ts_Rank(((close + high) - low), 16))) * (1 - Ts_Rank(returns, 32)))
+                        (high own-history volume, low own-history price and return; delay-1)
+            - Alpha#38: ((-1 * rank(Ts_Rank(close, 10))) * rank((close / open)))
+                        (short a coin at the top of its 10-day range that also rose on the day; delay-1)
+            - Alpha#53: (-1 * delta((((close - low) - (high - close)) / (close - low)), 9))
+                        (fade the 9-day change in where the close sits in the day's range; paper: delay-0)
+            - Alpha#54: ((-1 * ((low - close) * (open^5))) / ((low - high) * (close^5)))
+                        (close location in the range times (open/close)^5; paper: delay-0)
+            Operators: paper Appendix A.2 (rank = cross-sectional over the coins present; delay / delta / sum / Ts_Rank =
+            per-coin time series over the past d DAYS; returns = daily close-to-close). Translation to crypto (24/7): a
+            "day" = one UTC calendar day built from the 1h bars of spot/binance_<COIN> (open = first hour's open,
+            high/low = max/min, close = last hour's close, volume = sum of vol). The SIGNAL uses those raw Binance daily
+            OHLCV; the RESPONSE (forward return) uses primary/validated_<COIN> `price` only. Every alpha: signal from day
+            d, response from end of day d to end of day d+1 (00:00 UTC to 00:00 UTC). For the delay-0 pair (#53, #54) the
+            paper trades at day d's close; in crypto that close IS day d+1's open, so the same window applies. Note the
+            division hazards (#53: close == low; #54: high == low) and how they are handled, in DECISIONS.md.
             The paper's sample is US equities 2010-2013 (pre-dates VAL; no holdout flag).
+
+MIN_USEFUL_IC: 0.02   (rank IC per day; RUNBOOK_v3 v3.2: "supported" = significant AND at least this; cost never decides a
+            branch, it sets the STANDALONE / COMBINE-ONLY label in SIGNALS.md)
 
 ALREADY TESTED (names only, do NOT pick these): BTC hour-of-day seasonality (the 21:00-23:00 UTC window); BTC flow-imbalance and
             positioning / crowd-positioning claims; BTC-dislocation propagation to other coins; short-horizon reversal after taker
@@ -73,7 +87,11 @@ ALREADY TESTED (names only, do NOT pick these): BTC hour-of-day seasonality (the
             daily time-series reversal; reversal after panel volume-shock days; same-hour-yesterday 1h reversal; high-volume
             relative winners continue; intraday 6h-block reversal; 6h reversal in high trailing vol; crash-day rebound (and a
             volatility-regime filter on it); and runs/2026-10-05_crypto-validated-1h (do NOT open it either): perp premium cross-section,
-            Fear & Greed level, prior-session S&P 500 return. (Topic names only; no results.)
+            Fear & Greed level, prior-session S&P 500 return; and runs/2026-10-05_crypto-101alphas (do NOT open it): the
+            first batch of this paper's alphas, #101 intraday-range momentum, #42 vwap-close reversal, #2 volume-change /
+            intraday-return correlation, #6 open-volume correlation, #4 time-series rank of the cross-sectional rank of
+            low, and their children (raw volume-change / return co-movement; flipped #42 over 2 days). (Topic names only;
+            no results.)
 
 PRE-APPROVED INSTALLS: pandas, pyarrow, numpy, scipy, statsmodels, matplotlib   (into /home/user/eda-routine/.venv only)
 
@@ -83,7 +101,8 @@ ROUND-TRIP COST (bp): MEASURED FTMO CFD costs (spread at the trade minute from F
             BCH 65.5, XRP 68.6. Use these, not the `ftmo_spread_rt_bp` column on spot/binance_* (an old single live sample).
 
 NOTES: CLOUD RUN. Map every C:\Users\User\<x> path in RUNBOOK_v3.md to /home/user/<x> (backslashes to slashes).
-       Follow RUNBOOK_v3.md (v3.1: several CONFIRM folds, enforced by gate.py). Run gate.py as the runbook says.
+       Follow RUNBOOK_v3.md (v3.2: several CONFIRM folds; every allowed fold before HIGH-CONFIRM; the SIGNAL CONSTRUCTION
+       STANDARD; weak signals kept and handed off in SIGNALS.md). Run gate.py as the runbook says.
        Scope Phase 0 to the PRIMARY TARGET panel first (10 coins, 1h); profile the other families only for coverage,
        knowability and alignment, not as 234 separate studies. This run needs only primary/ and spot/binance_*; the other
        families matter only as rivals (e.g. a volatility or market-wide twin).
