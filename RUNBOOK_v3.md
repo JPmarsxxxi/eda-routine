@@ -182,6 +182,28 @@ descriptive printed in its parent's cell); `none` if there is none. Those slices
 mechanism. A NO-STORY entry with `forbids: none - NO-STORY` may still open a CONFIRM fold only once it has been re-written with
 a real `forbids` line — until then `gate.py` blocks it from any CONFIRM-fold cell.
 
+### SIGNAL CONSTRUCTION STANDARD — how a hypothesis becomes a number per asset per time
+
+The routine is EDA, not signal construction (14c), but every test still computes *some* signal, and an improvised one is a
+hidden choice. The pipeline stages that follow EDA (`skills/12-alpha-overview.md`: 3b ts_transform, 5 rank, 4 neutralisation)
+are the reference; this section is the floor every rule file meets, and states the choice so nobody has to reverse-engineer it.
+
+1. **Point-in-time inputs.** Each input is lagged to its entry-knowable time (MANIFEST.csv `knowable`, DATA_CARD.md) before
+   it touches a response. The response window starts after the last input is knowable.
+2. **Trailing scaling only.** Any per-asset normalisation (z-score, normal score, vol scaling, time-series rank) uses a
+   trailing window or expanding history ending at the signal time — never statistics of the whole slice. Cross-sectional
+   ranks/z-scores taken at a single timestamp are point-in-time by construction and are fine.
+3. **Tails.** Winsorise the signal at stated cross-sectional (or trailing) quantiles, or use ranks; say which.
+4. **Two versions, always.** For a multi-asset panel:
+   - **raw** — the signal as defined, against each asset's own forward return;
+   - **neutral** — the signal ranked (or demeaned) across assets at each timestamp, against each asset's forward return
+     minus the equal-weight panel return at the same horizon. This removes the common market move, so the ten-coin panel is
+     not counted as ten bets on one market direction.
+   The rule's `version:` header names which one the claim is about; the other is a pre-registered descriptive in the same
+   cell. Single-asset targets have only `raw` (say so).
+5. **Market share.** Every test cell reports, as a descriptive, the correlation of the signal with the contemporaneous panel
+   return (and BTC's), so the report can say how much of a signal is the market.
+
 ---
 
 ## PHASE 2 — the loop (repeat until a stop rule fires)
@@ -193,22 +215,27 @@ For each iteration:
    lowest such fold counts — slice rule 3). Among pickable hypotheses, choose the test with the largest expected belief
    shift; break ties by cheapest test. Write the arithmetic in `cell_NN_rule.md`. HIGH hypotheses stay pickable on purpose:
    one fold is not confirmation, and running the remaining folds is the decay-first check.
-2. **Write `cells\cell_NN_rule.md` FIRST** (before any code). It starts with three header lines `gate.py` parses:
+2. **Write `cells\cell_NN_rule.md` FIRST** (before any code). It starts with four header lines `gate.py` parses:
    ```
    hypothesis: H<n>
    slice: <EXPLORE | C<j> | VAL>
    kind: <test | redirect | val>
+   version: <raw | neutral>
    ```
-   then the sub-claim, the 14c menu row + tool named, the decision rule with three branches and numbers, and the **evidence
-   weight** for each branch:
+   (`version` = which construction of the signal the decision rule is about — see SIGNAL CONSTRUCTION STANDARD; the other
+   version is still computed and reported as a pre-registered descriptive.) Then the sub-claim, the 14c menu row + tool
+   named, the decision rule with three branches and numbers, and the **evidence weight** for each branch:
    - `weight(supported) = power / alpha`, `weight(refuted) = (1 - power) / (1 - alpha)`, `weight(inconclusive) = 1`.
-   - `power` comes from a stated simulation at the smallest economically meaningful effect size, **at this slice's own sample
-     size** (a fold is shorter than v3.0's single CONFIRM; its power is lower and the weight must say so) — write the
-     simulation's own one-line result in the rule file, not just the number.
-   - **The rule must carry a size condition, not just a significance condition.** "supported" requires the effect to clear
-     the stated smallest economically meaningful size (or a stated fraction of it, argued in the rule file); a significant
-     effect below that size is `inconclusive`, never `supported`. (The first v3 run reached 0.985 on an effect half its own
-     economic threshold, because its rules only asked for z < -1.645.)
+   - `power` comes from a stated simulation at the **minimum useful effect** (below), **at this slice's own sample size** —
+     write the simulation's own one-line result in the rule file, not just the number. **The simulation's noise is calibrated
+     from data the hypothesis has already seen** (the statistic's own dispersion on EXPLORE or an opened slice, or a
+     block bootstrap of it), never assumed: the 101-alphas run's pre-registered weights were off by 3-4x either way because
+     their noise was assumed, not measured.
+   - **"Supported" means REAL, not TRADEABLE.** The rule requires significance AND an effect at least the **minimum useful
+     effect**: `MIN_USEFUL_IC` from TARGET.md (default 0.02 rank IC per period), or, for a statistic not in IC units, its
+     stated equivalent converted in the rule file. A significant effect below it is `inconclusive`. **Cost is not part of
+     the branch.** A real-but-small signal is exactly what a later combination stage wants; whether it pays for itself
+     alone is the STANDALONE / COMBINE-ONLY label in `SIGNALS.md` (Phase 3), computed after the fact, never a gate.
    - **Guard (a):** if this cell re-tests a sub-claim an earlier cell in this session already tested on the SAME slice, it is
      the same piece of evidence — take the stronger test's weight, do not multiply both in. Tests on DIFFERENT folds are
      separate pieces of evidence and their weights multiply — that is what the folds are for.
@@ -241,9 +268,11 @@ For each iteration:
 - **LOW** — posterior < 5%. Closed for this session; no further cells against it.
 - **OPEN** — posterior 5%-85%. Pickable while it has an admissible slice.
 - **HIGH** — posterior > 85%, not yet confirmed. Pickable while it has an admissible slice.
-- **HIGH-CONFIRM** — posterior > 85% AND `supported` on at least 2 CONFIRM folds AND `refuted` on none. Queued for VAL. (A
-  hypothesis refuted on any fold cannot be HIGH-CONFIRM however high its posterior: an effect that lives in one fold is a
-  regime story, and the report says so.)
+- **HIGH-CONFIRM** — posterior > 85% AND `supported` on at least 2 CONFIRM folds AND `refuted` on none AND **every CONFIRM
+  fold it is allowed to open has been opened**. Queued for VAL. (A hypothesis refuted on any fold cannot be HIGH-CONFIRM
+  however high its posterior: an effect that lives in one fold is a regime story, and the report says so. And a hypothesis
+  may not stop testing at the first two good folds: the 101-alphas run's H1 reached HIGH-CONFIRM after C1 and C2, never
+  opened C3 — the first fold where its response was a different price source — and then failed VAL.)
 - **HIGH-VAL** — was HIGH-CONFIRM and its VAL cell came back `supported`. (VAL refuted or inconclusive -> it stays
   HIGH-CONFIRM or drops by its posterior, and the report states the VAL failure.)
 
@@ -291,10 +320,32 @@ are the FINAL state, after the Phase 3 VAL cells.
    K = every EXPLORE/fold/VAL look counted, flagged for the downstream DSR deflation; one part-0
    `1b finding` block per hypothesis that moved off its prior; the still-open list; leads (NO-STORY entries, observations not
    chased this session).
-3. **`INBOX_PROPOSALS.md`** — any new idea/paper/group worth a future session goes here, never written into `INBOX.md`
+3. **`SIGNALS.md`** — the hand-off to whoever pairs signals later. One block for EVERY hypothesis that was `supported` on at
+   least one CONFIRM fold, whatever its final state (weak signals are the point; the state says how sure we are). If there
+   are none, the file holds the single line `none: no hypothesis was supported on any CONFIRM fold`. Fixed format, checked
+   by `gate.py`:
+   ```
+   ## S<n> — <short title>
+   hypothesis: H<k>
+   definition: <exact formula, inputs, lags, knowable time, universe>
+   version: <raw | neutral — the version the evidence is about>
+   horizon: <response window>
+   folds: <slice> <effect> <branch>; <slice> <effect> <branch>; ... (every slice opened, VAL included)
+   turnover: <how often the signal's ranks change, per period>
+   cost_line: <effect per period vs round-trip cost per period, arithmetic shown>
+   label: <STANDALONE | COMBINE-ONLY>
+   corr_baselines: market <r>; btc <r>; momentum_<lookback> <r>; volatility <r>
+   corr_signals: S<m> <r>; ... | none
+   ```
+   `label` = STANDALONE if its effect clears the cost line on its own, otherwise COMBINE-ONLY. Every correlation is computed
+   on TRAIN only (EXPLORE + folds), between signal values at the same timestamps (`corr_signals` also reports, as a second
+   number, the correlation of the two signals' per-period IC series). **The routine does not combine signals or fit any
+   weights** — a blend fitted on the folds that confirmed its inputs re-uses that evidence. Combination is a later stage
+   with its own held-out data and its own K; `SIGNALS.md` is what it reads.
+4. **`INBOX_PROPOSALS.md`** — any new idea/paper/group worth a future session goes here, never written into `INBOX.md`
    directly (same pattern as `DATA_ADDED.md` in the x101 runs — the human merges it).
-4. Mark the consumed inbox item(s) `used <run folder>` in `INBOX.md`. Increment this mode's count in `MODES.md`.
-5. Set `TARGET.md` STATUS to `DONE <run folder>` — but only if `gate.py` (see below) passes. If it fails, fix what it names
+5. Mark the consumed inbox item(s) `used <run folder>` in `INBOX.md`. Increment this mode's count in `MODES.md`.
+6. Set `TARGET.md` STATUS to `DONE <run folder>` — but only if `gate.py` (see below) passes. If it fails, fix what it names
    and re-run the check; do not write DONE around a failing gate.
 
 ---
@@ -304,11 +355,12 @@ are the FINAL state, after the Phase 3 VAL cells.
 - **`C:\Users\User\eda-routine\gate.py`** — deterministic, modeled on `eda_guard.py`. Run it (`python gate.py <run_dir>`)
   before `STATUS: DONE` may be written; it must print `PASS`. Checks: every required file/section from Phases 0-3 exists;
   `SPLITS.md` declares EXPLORE, at least 2 ordered non-overlapping CONFIRM folds and VAL; every `cell_NN_rule.md` predates its
-  `cell_NN_result.md` and carries the hypothesis/slice/kind header; every `BELIEFS.md` entry has all required fields in the
+  `cell_NN_result.md` and carries the hypothesis/slice/kind/version header; every `BELIEFS.md` entry has all required fields in the
   fixed format (above); the slice rules (never the birth or `seen_on` slice, each slice once, folds in order, redirects only
   on EXPLORE or an already-opened slice, no NO-STORY entry on a fold); every posterior equals its prior times the
   `weight_applied` chain, each weight within the 10x cap; every state matches its posterior and fold record; VAL only for
-  HIGH-CONFIRM, after every test cell; `STOP_REASON.md`'s counts and S1-S4 claim match what `BELIEFS.md` and the cells
+  HIGH-CONFIRM (all its folds opened), after every test cell; `SIGNALS.md` has a complete block for every hypothesis
+  supported on a fold; `STOP_REASON.md`'s counts and S1-S4 claim match what `BELIEFS.md` and the cells
   actually show. If it prints `FAIL`, fix what it names —
   do not write DONE around a failing gate, and do not edit a result file to make an mtime check pass; fix the process
   defect it's pointing at.
@@ -328,5 +380,6 @@ Run both at the end of Phase 3, in that order — `gate.py` first since the judg
 Run EDA as a "show what you can do" exercise; present a finding with no pre-committed rule; silently ignore a refuted
 sub-claim; test a NO-STORY lead on a CONFIRM fold without a forbidding prediction; test a hypothesis on the slice that produced
 it or a slice where its statistic was already seen; open the same slice twice for one hypothesis; skip a fold to reach a
-later one; call a significant-but-too-small effect "supported"; multiply the same evidence in twice (guard a); let one cell
+later one; call an effect below the minimum useful effect "supported"; let cost decide a branch; scale a signal with
+whole-slice statistics; combine signals or fit blend weights; multiply the same evidence in twice (guard a); let one cell
 move a probability past the 10x cap (guard b); stop with a pickable hypothesis and no S2/S3; build a generic `eda.py`.

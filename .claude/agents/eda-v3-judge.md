@@ -108,6 +108,21 @@ For every `cells\cell_NN_rule.md`:
 3. If `SOURCE_MODE` was explicitly set in `TARGET.md`, was autopick's tie-break logic used anyway (i.e.
    ignored the explicit setting)? That is a FAIL — autopick only fires on a blank line.
 
+## Checklist G — signal construction and the hand-off (RUNBOOK_v3.md SIGNAL CONSTRUCTION STANDARD, Phase 3 step 3)
+
+1. **Trailing scaling.** Open the code each test cell names. Is any per-asset normalisation (z-score, normal score, vol
+   scaling, time-series rank) fitted on the whole slice instead of a trailing or expanding window? FAIL, naming the cell.
+2. **Both versions.** For a multi-asset panel, does every test cell report the version its header does NOT claim, as a
+   descriptive? A cell with only one version is a FAIL.
+3. **Cost stayed out of the branch.** Does any rule file's `supported` branch require the effect to beat costs? That is the
+   v3.1 rule this replaced; FAIL. (The size condition must be the minimum useful effect, not the cost line.)
+4. **Noise was measured.** Does each power simulation take its noise from data already seen (EXPLORE or an opened slice, or a
+   bootstrap), as Phase 2 step 2 requires? An assumed noise level is a FAIL.
+5. **SIGNALS.md is honest.** For each block: do `folds` match the result files, is `label` consistent with `cost_line`, and
+   were the correlations computed on TRAIN only (check the code or table it cites)? A correlation computed with VAL rows, or a
+   STANDALONE label whose cost line does not clear, is a FAIL.
+6. **No combining.** Did the run fit blend weights or score a combination of signals as evidence? FAIL.
+
 ## Your verdict
 
 Reply in exactly this shape and nothing else:
@@ -124,7 +139,7 @@ VERDICT: FAIL
 REASON: <EVERY failed check, each with its evidence — checklist letter + number, one per line>
 ```
 
-**Do not stop at the first failure.** Work through all six checklists, then report every failed check
+**Do not stop at the first failure.** Work through all seven checklists, then report every failed check
 in one block. A report naming one failure when three exist is itself a failed report.
 
 **Severity is flat here** — there is no MINOR tier for this judge. Anything on checklists A-D is a

@@ -14,7 +14,8 @@ hypothesis is a good idea, or whether a decision rule was picked in good faith. 
 required files exist, whether a rule file predates its result, whether every BELIEFS.md entry carries
 every required field, whether each cell's slice is one its hypothesis was allowed to open, whether
 each posterior is the product of the weights its result files report, whether each state matches
-its posterior and fold record, and whether STOP_REASON.md's claim matches all of that.
+its posterior and fold record (HIGH-CONFIRM only once every allowed fold is opened), whether SIGNALS.md
+hands off every fold-supported signal, and whether STOP_REASON.md's claim matches all of that.
 
 What it CANNOT enforce - stated plainly
 ----------------------------------------
@@ -52,6 +53,12 @@ BELIEF_REQUIRED_KEYS = [
 STOP_REQUIRED_KEYS = ["rule", "open_count", "low_count", "high_count", "detail"]
 STOP_RULES = ("S1", "S2", "S3", "S4")
 CELL_KINDS = {"test", "redirect", "val"}
+VERSIONS = {"raw", "neutral"}
+SIGNAL_REQUIRED_KEYS = [
+    "hypothesis", "definition", "version", "horizon", "folds", "turnover",
+    "cost_line", "label", "corr_baselines", "corr_signals",
+]
+SIGNAL_LABELS = {"STANDALONE", "COMBINE-ONLY"}
 BRANCHES = {"supported", "refuted", "inconclusive"}
 
 LOW_BELOW = 0.05
@@ -73,6 +80,7 @@ REQUIRED_FILES = [
     "ACCESS_LOG.md",
     "STOP_REASON.md",
     "REPORT.md",
+    "SIGNALS.md",
 ]
 
 # DATA_PROFILE.md must have a heading for each of these (RUNBOOK_v3.md PHASE 0, items 1-7).
@@ -104,6 +112,7 @@ class Cell:
     hypothesis: str
     slice: str
     kind: str
+    version: str | None = None
     branch: str | None = None
     weight: float | None = None
 
@@ -329,7 +338,7 @@ def check_cells(run_dir: str, report: GateReport) -> list[Cell]:
             report.add("cell_missing_announce", f"cell_{nn}: no cell_{nn}_announce.md")
 
         with open(rule_path, encoding="utf-8") as fh:
-            head = _parse_kv_file(fh.read(), ["hypothesis", "slice", "kind"])
+            head = _parse_kv_file(fh.read(), ["hypothesis", "slice", "kind", "version"])
         missing = [k for k in ("hypothesis", "slice", "kind") if not head.get(k)]
         if missing:
             report.add(
@@ -340,7 +349,13 @@ def check_cells(run_dir: str, report: GateReport) -> list[Cell]:
         if head["kind"] not in CELL_KINDS:
             report.add("cell_bad_kind", f"cell_{nn}: kind='{head['kind']}' is not one of {sorted(CELL_KINDS)}")
             continue
-        cell = Cell(int(nn), head["hypothesis"], head["slice"], head["kind"])
+        cell = Cell(int(nn), head["hypothesis"], head["slice"], head["kind"], head.get("version"))
+        if cell.kind in ("test", "val") and cell.version not in VERSIONS:
+            report.add(
+                "cell_rule_no_version",
+                f"cell_{nn}: a {cell.kind} cell needs 'version: raw' or 'version: neutral' "
+                f"(SIGNAL CONSTRUCTION STANDARD), got '{cell.version}'",
+            )
 
         if not os.path.exists(result_path):
             report.add("cell_missing_result", f"cell_{nn}: no cell_{nn}_result.md")
@@ -386,6 +401,10 @@ def _hypothesis_record(hid: str, cells: list[Cell]) -> dict:
 def _admissible(entry: dict, opened: list[str], folds: list[str]) -> list[str]:
     closed = {_born_slice(entry)} | _seen_slices(entry) | set(opened)
     return [s for s in ["EXPLORE"] + folds if s not in closed]
+
+
+def _folds_left(entry: dict, opened: list[str], folds: list[str]) -> list[str]:
+    return [s for s in _admissible(entry, opened, folds) if s.startswith("C")]
 
 
 def check_slice_rules(beliefs: list[dict], cells: list[Cell], folds: list[str], report: GateReport) -> None:
@@ -453,14 +472,17 @@ def check_slice_rules(beliefs: list[dict], cells: list[Cell], folds: list[str], 
             val_seen.add(c.hypothesis)
             sup = fold_branches[c.hypothesis].count("supported")
             ref = fold_branches[c.hypothesis].count("refuted")
-            if sup < MIN_SUPPORTED_FOLDS or ref > 0:
+            left = _folds_left(e, opened[c.hypothesis], folds)
+            if sup < MIN_SUPPORTED_FOLDS or ref > 0 or left:
                 report.add(
                     "val_not_high_confirm",
-                    f"{tag}: VAL is only for HIGH-CONFIRM; {c.hypothesis} had {sup} supported and {ref} refuted folds",
+                    f"{tag}: VAL is only for HIGH-CONFIRM; {c.hypothesis} had {sup} supported and {ref} refuted folds"
+                    + (f", and fold(s) {left} still unopened" if left else ""),
                 )
 
 
-def check_posteriors_and_states(beliefs: list[dict], cells: list[Cell], report: GateReport) -> None:
+def check_posteriors_and_states(beliefs: list[dict], cells: list[Cell], folds: list[str],
+                                report: GateReport) -> None:
     for e in beliefs:
         hid = e["_id"]
         mine = [c for c in cells if c.hypothesis == hid]
@@ -499,14 +521,15 @@ def check_posteriors_and_states(beliefs: list[dict], cells: list[Cell], report: 
             if not state.startswith("HIGH"):
                 report.add("state_mismatch", f"{hid}: posterior {post} means a HIGH state, BELIEFS.md says {state}")
                 continue
-            confirmed = rec["supported_folds"] >= MIN_SUPPORTED_FOLDS and rec["refuted_folds"] == 0
+            left = _folds_left(e, rec["opened"], folds)
+            confirmed = rec["supported_folds"] >= MIN_SUPPORTED_FOLDS and rec["refuted_folds"] == 0 and not left
             if state == "HIGH-VAL" and not (confirmed and rec["val_supported"]):
                 report.add("state_mismatch", f"{hid}: HIGH-VAL needs HIGH-CONFIRM and a supported VAL cell")
             elif state == "HIGH-CONFIRM" and not confirmed:
                 report.add(
                     "state_mismatch",
-                    f"{hid}: HIGH-CONFIRM needs >= {MIN_SUPPORTED_FOLDS} supported and 0 refuted folds; "
-                    f"has {rec['supported_folds']} supported, {rec['refuted_folds']} refuted",
+                    f"{hid}: HIGH-CONFIRM needs >= {MIN_SUPPORTED_FOLDS} supported, 0 refuted and no unopened fold; "
+                    f"has {rec['supported_folds']} supported, {rec['refuted_folds']} refuted, unopened {left}",
                 )
             elif state == "HIGH-CONFIRM" and rec["val_supported"]:
                 report.add("state_mismatch", f"{hid}: passed VAL, so its state is HIGH-VAL, not HIGH-CONFIRM")
@@ -514,6 +537,41 @@ def check_posteriors_and_states(beliefs: list[dict], cells: list[Cell], report: 
                 report.add("state_mismatch", f"{hid}: meets HIGH-CONFIRM (folds) but is recorded as HIGH")
         if state == "HIGH-CONFIRM" and not rec["has_val"]:
             report.add("val_owed", f"{hid}: HIGH-CONFIRM at the end of the session but no VAL cell was run")
+
+
+def check_signals(run_dir: str, beliefs: list[dict], cells: list[Cell], report: GateReport) -> None:
+    """SIGNALS.md: one complete block for every hypothesis supported on at least one CONFIRM fold."""
+    text = _read(run_dir, "SIGNALS.md")
+    if text is None:
+        return  # already reported by check_required_files
+    owed = sorted({c.hypothesis for c in cells
+                   if c.kind == "test" and c.slice.startswith("C") and c.branch == "supported"})
+    blocks = re.split(r"(?m)^##\s*(S\d+)\b", text)
+    entries = []
+    for i in range(1, len(blocks), 2):
+        entries.append((blocks[i], _parse_kv_file(blocks[i + 1], SIGNAL_REQUIRED_KEYS)))
+    if not entries:
+        if owed:
+            report.add("signals_missing", f"SIGNALS.md has no '## S<n>' blocks but {owed} were supported on a fold")
+        elif not re.search(r"(?m)^none:", text):
+            report.add("signals_empty", "SIGNALS.md has no blocks and no 'none:' line")
+        return
+    ids = {e["_id"] for e in beliefs}
+    covered = set()
+    for sid, kv in entries:
+        missing = [k for k in SIGNAL_REQUIRED_KEYS if not kv.get(k)]
+        if missing:
+            report.add("signals_missing_fields", f"SIGNALS.md {sid}: missing or empty field(s) {missing}")
+        if kv.get("hypothesis") and kv["hypothesis"] not in ids:
+            report.add("signals_unknown_hypothesis", f"SIGNALS.md {sid}: {kv['hypothesis']} is not in BELIEFS.md")
+        if kv.get("label") and kv["label"] not in SIGNAL_LABELS:
+            report.add("signals_bad_label", f"SIGNALS.md {sid}: label '{kv['label']}' not one of {sorted(SIGNAL_LABELS)}")
+        if kv.get("version") and kv["version"].split()[0] not in VERSIONS:
+            report.add("signals_bad_version", f"SIGNALS.md {sid}: version '{kv['version']}' not raw or neutral")
+        covered.add(kv.get("hypothesis"))
+    for hid in owed:
+        if hid not in covered:
+            report.add("signals_missing", f"{hid} was supported on a CONFIRM fold but has no SIGNALS.md block")
 
 
 def check_stop_reason(run_dir: str, beliefs: list[dict], cells: list[Cell], folds: list[str],
@@ -592,7 +650,8 @@ def check_run(run_dir: str) -> GateReport:
     beliefs = check_beliefs_format(run_dir, folds, report)
     cells = check_cells(run_dir, report)
     check_slice_rules(beliefs, cells, folds, report)
-    check_posteriors_and_states(beliefs, cells, report)
+    check_posteriors_and_states(beliefs, cells, folds, report)
+    check_signals(run_dir, beliefs, cells, report)
     check_stop_reason(run_dir, beliefs, cells, folds, report)
     return report
 

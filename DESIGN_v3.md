@@ -3,6 +3,22 @@
 Status: DRAFT for the user to read. RUNBOOK.md (v2) is untouched and stays the live one until v3 is approved and built.
 Written 2026-09-28.
 
+## Amendment v3.2 (2026-10-06): weak signals are kept; every fold before HIGH-CONFIRM; a construction floor
+
+Evidence: `runs/2026-10-05_crypto-101alphas`. Its H1 reached HIGH-CONFIRM after C1 and C2, never opened C3 (HIGH-CONFIRM was
+not pickable), then failed VAL; its own report puts the honest posterior at 0.49-0.74. Its power simulations assumed their
+noise and were off by 3-4x. And its rule ("supported needs >= 20 bp/day after costs") discarded anything real but small —
+the inputs a later combination stage needs.
+
+- HIGH-CONFIRM additionally requires every fold the hypothesis may open to have been opened.
+- "Supported" = significant AND at least the minimum useful effect (`MIN_USEFUL_IC`, default 0.02). Cost never decides a
+  branch; it sets the STANDALONE / COMBINE-ONLY label in the new `SIGNALS.md`.
+- Power-simulation noise is measured on already-seen data, not assumed.
+- A signal construction floor: point-in-time inputs, trailing-only scaling, stated tail handling, raw AND market-neutral
+  versions every time, and the signal's correlation with the market reported.
+- `SIGNALS.md` hands every fold-supported signal to a later combination stage with its definition, fold record, turnover,
+  cost line and correlations (baselines and each other). The routine itself never combines or fits weights.
+
 ## Amendment v3.1 (2026-10-02): several CONFIRM folds instead of one CONFIRM slice
 
 Supersedes "The funnel" below wherever they differ; RUNBOOK_v3.md carries the operational rules.

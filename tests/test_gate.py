@@ -53,15 +53,32 @@ def base_beliefs():
     }
 
 
+VAL_NN = 99  # VAL cells are numbered last; tests add their own cells in 6..98
+
+
 def base_cells():
     # nn: (hypothesis, slice, kind, branch, weight)
+    # H1 opens every fold (C3 inconclusive) before its VAL cell, as HIGH-CONFIRM requires.
     return {
         1: ("H1", "C1", "test", "supported", 10),
         2: ("H1", "C2", "test", "supported", 10),
         3: ("H2", "C1", "test", "refuted", 0.1),
         4: ("H2", "EXPLORE", "redirect", "inconclusive", 1),
-        5: ("H1", "VAL", "val", "supported", 10),
+        5: ("H1", "C3", "test", "inconclusive", 1),
+        VAL_NN: ("H1", "VAL", "val", "supported", 10),
     }
+
+
+def signal_block(sid, hid, **over):
+    kv = dict(hypothesis=hid, definition="(close-open)/(high-low), daily, knowable 00:00 UTC", version="neutral",
+              horizon="1 day", folds="C1 +0.03 supported; C2 +0.03 supported; C3 +0.01 inconclusive",
+              turnover="0.6 per day", cost_line="12 bp/day vs 45 bp round trip", label="COMBINE-ONLY",
+              corr_baselines="market 0.05; btc 0.04; momentum_20d 0.10; volatility -0.02", corr_signals="none")
+    kv.update(over)
+    return f"## {sid} — test signal\n" + "".join(f"{k}: {v}\n" for k, v in kv.items() if v is not None)
+
+
+BASE_SIGNALS = signal_block("S1", "H1")
 
 
 BASE_STOP = dict(rule="S2", open_count=1, low_count=1, high_count=1,
@@ -74,7 +91,7 @@ def write(path, text):
 
 
 class GateTest(unittest.TestCase):
-    def build(self, beliefs=None, cells=None, stop=None, splits=SPLITS):
+    def build(self, beliefs=None, cells=None, stop=None, splits=SPLITS, signals=BASE_SIGNALS):
         beliefs = beliefs if beliefs is not None else base_beliefs()
         cells = cells if cells is not None else base_cells()
         stop = stop if stop is not None else BASE_STOP
@@ -87,10 +104,11 @@ class GateTest(unittest.TestCase):
         write(os.path.join(d, "SPLITS.md"), splits)
         write(os.path.join(d, "BELIEFS.md"), "# BELIEFS\n\n" + "\n".join(belief(h, **kw) for h, kw in beliefs.items()))
         write(os.path.join(d, "STOP_REASON.md"), "".join(f"{k}: {v}\n" for k, v in stop.items()))
+        write(os.path.join(d, "SIGNALS.md"), "# SIGNALS\n\n" + signals)
         os.makedirs(os.path.join(d, "cells"))
         for nn, (hid, sl, kind, branch, weight) in cells.items():
             p = os.path.join(d, "cells", f"cell_{nn:02d}_")
-            write(p + "rule.md", f"hypothesis: {hid}\nslice: {sl}\nkind: {kind}\n\n# rule\n")
+            write(p + "rule.md", f"hypothesis: {hid}\nslice: {sl}\nkind: {kind}\nversion: neutral\n\n# rule\n")
             write(p + "announce.md", "# announce\n")
             write(p + "result.md", f"branch: {branch}\nweight_applied: {weight}\n\n# result\n")
         return gate.check_run(d)
@@ -125,15 +143,13 @@ class GateTest(unittest.TestCase):
     def test_test_on_birth_slice(self):
         cells = base_cells()
         cells[6] = ("H3", "EXPLORE", "test", "inconclusive", 1)
-        cells[5], cells[6] = cells[6], cells[5]  # keep VAL last
         self.assertFails(self.build(cells=cells), "slice_birth_or_seen")
 
     def test_test_on_seen_slice(self):
         beliefs = base_beliefs()
         beliefs["H3"]["seen_on"] = "C1"
         cells = base_cells()
-        cells[5] = ("H3", "C1", "test", "inconclusive", 1)
-        cells[6] = ("H1", "VAL", "val", "supported", 10)
+        cells[6] = ("H3", "C1", "test", "inconclusive", 1)
         self.assertFails(self.build(beliefs=beliefs, cells=cells), "slice_birth_or_seen")
 
     def test_fold_skipped(self):
@@ -151,10 +167,10 @@ class GateTest(unittest.TestCase):
         # H3 born on C1; tested on EXPLORE (x2) then C2 (x2): 0.30 -> 0.632. C1 is skipped because it is closed.
         beliefs["H3"].update(born_on="C1 cell_03", posterior=0.632)
         cells = base_cells()
-        cells[5] = ("H3", "EXPLORE", "test", "supported", 2)
-        cells[6] = ("H3", "C2", "test", "supported", 2)
-        cells[7] = ("H1", "VAL", "val", "supported", 10)
-        report = self.build(beliefs=beliefs, cells=cells)
+        cells[6] = ("H3", "EXPLORE", "test", "supported", 2)
+        cells[7] = ("H3", "C2", "test", "supported", 2)
+        signals = BASE_SIGNALS + "\n" + signal_block("S2", "H3")
+        report = self.build(beliefs=beliefs, cells=cells, signals=signals)
         self.assertTrue(report.ok, [f"{i.code}: {i.message}" for i in report.issues])
 
     def test_redirect_on_unopened_fold(self):
@@ -172,18 +188,19 @@ class GateTest(unittest.TestCase):
     def test_val_after_one_fold(self):
         cells = base_cells()
         del cells[2]
+        del cells[5]
         beliefs = base_beliefs()
         beliefs["H1"].update(posterior=0.985)
         self.assertFails(self.build(beliefs=beliefs, cells=cells), "val_not_high_confirm")
 
     def test_val_before_tests(self):
         cells = base_cells()
-        cells[3], cells[5] = cells[5], cells[3]
+        cells[3], cells[VAL_NN] = cells[VAL_NN], cells[3]
         self.assertFails(self.build(cells=cells), "val_before_tests")
 
     def test_high_confirm_without_val(self):
         cells = base_cells()
-        del cells[5]
+        del cells[VAL_NN]
         beliefs = base_beliefs()
         beliefs["H1"].update(posterior=0.985, state="HIGH-CONFIRM")
         self.assertFails(self.build(beliefs=beliefs, cells=cells), "val_owed")
@@ -211,7 +228,7 @@ class GateTest(unittest.TestCase):
     def test_high_confirm_needs_two_folds(self):
         cells = base_cells()
         del cells[2]
-        del cells[5]
+        del cells[VAL_NN]
         beliefs = base_beliefs()
         beliefs["H1"].update(posterior=0.870, state="HIGH-CONFIRM")
         self.assertFails(self.build(beliefs=beliefs, cells=cells), "state_mismatch")
@@ -221,6 +238,7 @@ class GateTest(unittest.TestCase):
         cells = base_cells()
         cells[2] = ("H1", "C2", "test", "refuted", 0.5)
         cells[5] = ("H1", "C3", "test", "supported", 10)
+        del cells[VAL_NN]
         beliefs = base_beliefs()
         beliefs["H1"].update(posterior=0.971, state="HIGH-CONFIRM")
         self.assertFails(self.build(beliefs=beliefs, cells=cells), "state_mismatch")
@@ -236,8 +254,7 @@ class GateTest(unittest.TestCase):
         beliefs = base_beliefs()
         beliefs["H3"].update(born_on="C1 cell_03", seen_on="C2, C3", posterior=0.462)
         cells = base_cells()
-        cells[5] = ("H3", "EXPLORE", "test", "supported", 2)
-        cells[6] = ("H1", "VAL", "val", "supported", 10)
+        cells[6] = ("H3", "EXPLORE", "test", "supported", 2)
         stop = dict(BASE_STOP, rule="S4")
         report = self.build(beliefs=beliefs, cells=cells, stop=stop)
         self.assertTrue(report.ok, [f"{i.code}: {i.message}" for i in report.issues])
@@ -246,8 +263,7 @@ class GateTest(unittest.TestCase):
         beliefs = base_beliefs()
         beliefs["H3"].update(born_on="C1 cell_03", seen_on="C2, C3", posterior=0.462)
         cells = base_cells()
-        cells[5] = ("H3", "EXPLORE", "test", "supported", 2)
-        cells[6] = ("H1", "VAL", "val", "supported", 10)
+        cells[6] = ("H3", "EXPLORE", "test", "supported", 2)
         self.assertFails(self.build(beliefs=beliefs, cells=cells), "stop_reason_s2_no_tests")
 
     def test_s1_with_open_entry(self):
@@ -258,7 +274,62 @@ class GateTest(unittest.TestCase):
         stop = dict(BASE_STOP, open_count=2)
         self.assertFails(self.build(stop=stop), "stop_reason_count_mismatch")
 
+    # ---------------------------------------------------------------- v3.2: every fold before HIGH-CONFIRM
+
+    def test_high_confirm_with_fold_left(self):
+        # the 101-alphas H1 case: two supported folds, C3 never opened, then VAL.
+        cells = base_cells()
+        del cells[5]
+        report = self.build(cells=cells)
+        self.assertFails(report, "val_not_high_confirm")
+        self.assertFails(report, "state_mismatch")
+
+    def test_high_with_two_folds_and_one_left_is_pickable(self):
+        cells = base_cells()
+        del cells[5]
+        del cells[VAL_NN]
+        beliefs = base_beliefs()
+        beliefs["H1"].update(posterior=0.985, state="HIGH")
+        stop = dict(BASE_STOP, open_count=1, high_count=1)
+        report = self.build(beliefs=beliefs, cells=cells, stop=stop)
+        self.assertTrue(report.ok, [f"{i.code}: {i.message}" for i in report.issues])
+        self.assertFails(self.build(beliefs=beliefs, cells=cells, stop=dict(stop, rule="S4")),
+                         "stop_reason_s4_violated")
+
+    # ---------------------------------------------------------------- v3.2: SIGNALS.md
+
+    def test_signals_block_missing_for_supported_hypothesis(self):
+        self.assertFails(self.build(signals="none: nothing\n"), "signals_missing")
+
+    def test_signals_none_line_when_nothing_supported(self):
+        cells = {3: ("H2", "C1", "test", "refuted", 0.1), 4: ("H2", "EXPLORE", "redirect", "inconclusive", 1)}
+        beliefs = base_beliefs()
+        beliefs["H1"].update(posterior=0.40, state="OPEN")
+        stop = dict(BASE_STOP, open_count=2, high_count=0)
+        report = self.build(beliefs=beliefs, cells=cells, stop=stop, signals="none: no hypothesis was supported\n")
+        self.assertTrue(report.ok, [f"{i.code}: {i.message}" for i in report.issues])
+
+    def test_signals_missing_field(self):
+        self.assertFails(self.build(signals=signal_block("S1", "H1", corr_signals=None)), "signals_missing_fields")
+
+    def test_signals_bad_label(self):
+        self.assertFails(self.build(signals=signal_block("S1", "H1", label="GREAT")), "signals_bad_label")
+
+    def test_weak_signal_is_kept(self):
+        # a signal supported on one fold but LOW-ish overall still owes a SIGNALS.md block.
+        cells = base_cells()
+        cells[6] = ("H3", "C1", "test", "supported", 2)
+        beliefs = base_beliefs()
+        beliefs["H3"].update(posterior=0.462)
+        self.assertFails(self.build(beliefs=beliefs, cells=cells), "signals_missing")
+
     # ---------------------------------------------------------------- headers
+
+    def test_rule_without_version(self):
+        report = self.build()
+        rule = os.path.join(report.run_dir, "cells", "cell_01_rule.md")
+        write(rule, "hypothesis: H1\nslice: C1\nkind: test\n\n# rule\n")
+        self.assertFails(gate.check_run(report.run_dir), "cell_rule_no_version")
 
     def test_rule_without_header(self):
         report = self.build()
