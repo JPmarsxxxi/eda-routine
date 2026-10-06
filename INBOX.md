@@ -24,7 +24,7 @@ available. A used item is left in place, not deleted, so the record of what's be
 - C:\Users\User\finding-alphas\lenses\_material\some_paper.pdf
 -->
 - C:\Users\User\eda-routine\1601.00991v3.pdf   (Kakushadze, "101 Formulaic Alphas", 2015; user picks 5 for crypto, see TARGET.md)  [used: runs/2026-10-05_crypto-101alphas]
-- C:\Users\User\eda-routine\1601.00991v3.pdf   (same paper, SECOND batch: #30 #35 #38 #53 #54, picked 2026-10-06 at the user's request; see TARGET.md)
+- C:\Users\User\eda-routine\1601.00991v3.pdf   (same paper, SECOND batch: #30 #35 #38 #53 #54, picked 2026-10-06 at the user's request; see TARGET.md)  [used: runs/2026-10-06_crypto-101alphas-b2]
 
 ## C. Paper groups — a name, then its papers indented under it, read together as one session's source
 
