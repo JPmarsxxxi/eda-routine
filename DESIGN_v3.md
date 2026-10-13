@@ -22,11 +22,15 @@ run from dropping every hypothesis after one look, so effort needs its own floor
   largest expected belief shift.
 - Effort floors (gate-enforced): no DROP before 3 search cells incl. a rival controlled and a conditional split, a fallen
   posterior and a stated reason; every search result answers its leads (`suggests:`); S1 not before 20 cells or 90 minutes.
-- A candidate is frozen in `candidates\F<n>.md` (spec, pass rule with a size condition, size and its cost line), then run
+- A candidate is frozen in `candidates\F<n>.md` (spec, construction floor, pass rule = significant AND >= min_useful, a cost line that only sets a STANDALONE /
+  COMBINE-ONLY label), then run
   unchanged on every CONFIRM fold (CONFIRM-SHOWN = >= 2 folds supported, none refuted), then checked on VAL. VAL may check
   any number of candidates, each once; the VAL cell records the spec's sha256 so a spec edited after its check fails the gate.
 - After a VAL failure the run may search TRAIN again; a new spec is a new candidate with `variant_of`, so families are visible.
-- TEST is never opened by the routine. VAL passes go to `TEST_REQUESTS.md` for the user.
+- TEST is never opened by the routine. VAL passes go to `TEST_REQUESTS.md` for the user, with label, turnover and
+  correlations (market, baselines, each other) for a later combination stage; the routine never combines.
+- Folded in from the cloud branch's own v3.2 (2026-10-06, branch claude/friendly-volta-rq2l22): keep weak-but-real signals
+  (cost labels, never decides), measured noise in power simulations, a signal construction floor.
 - K is counted, never capped: `K_train` (every spec a search evaluated, via `variants:`, plus confirm runs) and `K_val`, each
   with a cumulative per-dataset total in MEMORY/LEDGER.md, for the user's deflation.
 - Hypothesis states OPEN / DROPPED / CHECKED; candidate states FROZEN / CONFIRM-FAIL / CONFIRM-SHOWN / VAL-PASS / VAL-FAIL

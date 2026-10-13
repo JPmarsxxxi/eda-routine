@@ -42,7 +42,21 @@ is shared by all three.
 3. **Methods job** (`JOB: methods`) — either apply methods already in the library/toolbox to our data, or look for recent
    advancements / new algos and try them. Each tool validated on synthetic data with a planted answer first.
 
-## 3. Open questions (asked the user, not yet answered)
+## 2b. Decided later the same day
+
+- **Target:** the goal is always alpha/beta, so the user doesn't pick a target per run. Default: the forward return of the
+  dataset's main instrument(s), at horizons the run declares (each horizon tried counts in K). TARGET.md may override.
+  (Priors are beliefs about hypotheses; they don't change the target.)
+- **Modes A-E stay**, as "where ideas come from", inside every job (e.g. a papers-mode methods run = an algo from a paper).
+- **Merged in** the cloud runs from branch claude/friendly-volta-rq2l22: 2026-10-05_crypto-validated-1h (E),
+  2026-10-05_crypto-101alphas (B), 2026-10-06_crypto-101alphas-b2 (B) + LEDGER/FINDINGS/DATA_FACTS/MODES/INBOX. Their
+  data bundle (249 MB) is NOT merged into git; it lives in that branch and locally under data/.
+- **Folded into v3.3 from that branch's own v3.2:** supported = significant AND >= min_useful (cost only labels
+  STANDALONE / COMBINE-ONLY); power-sim noise measured on seen data; signal construction floor; TEST_REQUESTS carry
+  label, turnover, correlations. 65 gate tests pass.
+- Those runs are more evidence for v3.3: all stopped on "slices exhausted" after 14-28 cells / ~25-30 minutes.
+
+## 3. Open questions (original wording; see 2b for answers)
 
 1. **Predictive of what?** Data and features jobs need a target (e.g. US500 next-day return). Proposed: TARGET.md names it
    per run.

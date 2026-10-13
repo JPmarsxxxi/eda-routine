@@ -44,7 +44,8 @@ from dataclasses import dataclass, field
 HYPOTHESIS_STATES = {"OPEN", "DROPPED", "CHECKED"}
 BELIEF_REQUIRED_KEYS = ["parent", "source", "question", "hypothesis", "forbids", "rivals", "born_on",
                         "prior", "anchor", "posterior", "state"]
-CANDIDATE_REQUIRED_KEYS = ["hypothesis", "variant_of", "spec", "pass_rule", "size"]
+CANDIDATE_REQUIRED_KEYS = ["hypothesis", "variant_of", "spec", "construction", "pass_rule", "min_useful", "cost_line"]
+SIGNAL_LABELS = {"STANDALONE", "COMBINE-ONLY"}   # set by the cost line; cost never decides a branch
 STOP_REQUIRED_KEYS = ["rule", "open_count", "dropped_count", "frozen_count", "val_pass_count", "minutes", "detail"]
 STOP_RULES = ("S1", "S2", "S3")
 CELL_KINDS = {"search", "confirm", "val"}
@@ -501,12 +502,15 @@ def check_flow(run_dir: str, beliefs: list[dict], cands: dict, cells: list[Cell]
     passes = [f for f, st in status.items() if st == "VAL-PASS"]
     text = _read(run_dir, "TEST_REQUESTS.md") or ""
     blocks = re.split(r"(?m)^##\s*(F\d+)\b", text)
-    listed = {blocks[i]: _parse_kv_file(blocks[i + 1], ["spec_sha256"]) for i in range(1, len(blocks), 2)}
+    listed = {blocks[i]: _parse_kv_file(blocks[i + 1], ["spec_sha256", "label"]) for i in range(1, len(blocks), 2)}
     for f in passes:
         if f not in listed:
             report.add("test_request_missing", f"{f} passed VAL but TEST_REQUESTS.md has no `## {f}` block for the user")
         elif listed[f].get("spec_sha256") != cands[f].sha256:
             report.add("test_request_bad_sha", f"TEST_REQUESTS.md {f}: spec_sha256 does not match candidates/{f}.md")
+        if f in listed and listed[f].get("label", "").upper() not in SIGNAL_LABELS:
+            report.add("test_request_no_label",
+                       f"TEST_REQUESTS.md {f}: `label:` must be one of {sorted(SIGNAL_LABELS)} (from its cost line)")
     return status
 
 

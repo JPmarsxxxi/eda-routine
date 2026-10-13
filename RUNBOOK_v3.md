@@ -288,8 +288,9 @@ the run is done with it.
 Every cell (search, confirm, VAL) moves the posterior of the hypothesis it names:
 - The rule file states, before the cell runs, the evidence weight of each outcome: `weight = power / alpha` if the effect
   is there at the stated size, `(1 - power) / (1 - alpha)` if it is not, `1` if the cell cannot tell. `power` comes from a
-  stated simulation at the smallest economically meaningful effect, at this cell's own sample size — its one-line result in
-  the rule file, not just the number.
+  stated simulation at `min_useful`, at this cell's own sample size — its one-line result in the rule file, not just the
+  number. **The simulation's noise is measured on data already seen** (e.g. a day-permutation null on EXPLORE), never
+  assumed: a v3.1 run's assumed noise was off by 3-4x, so its weights over- and under-stated the evidence.
 - **Caps.** A search cell moves the odds at most **3x** either way (it looked at data the run may already have searched, so
   its evidence is weaker); a confirm or VAL check of a frozen spec at most **10x**. Cap the weight before applying it and
   say so.
@@ -341,11 +342,17 @@ hypothesis: H<n>
 variant_of: <none | F<k>>
 spec: <exactly what is computed: columns, statistic, every parameter, universe, horizon, conditioning, the slices it was
        built on — enough for the user to re-run it on TEST without asking>
+construction: <point-in-time inputs only; trailing-only scaling (no full-sample z-scores or ranks); tail handling
+       stated; raw AND market-neutral versions; the signal's correlation with the market reported>
 pass_rule: <three branches with numbers: supported if ..., refuted if ..., else inconclusive>
-size: <the smallest economically meaningful effect and the cost line behind it; `supported` requires clearing it>
+min_useful: <the smallest effect worth keeping, e.g. |rank IC| 0.02 — `supported` requires significance AND this size>
+cost_line: <turnover x round-trip cost vs the gross effect -> STANDALONE (clears cost alone) | COMBINE-ONLY (real but
+       too small or too costly alone)>
 ```
-**The pass rule carries a size condition, not just significance:** an effect that is significant but below `size` is
-`inconclusive`, never `supported`. (The first v3 run reached "supported" on an effect half its own economic threshold.)
+**Supported = significant AND at least `min_useful`.** An effect that is significant but smaller is `inconclusive`, never
+`supported`. (A v3.0 run reached "supported" on an effect half its own threshold.) **Cost never decides a branch:** a
+real-but-small signal is exactly what a later combination stage needs, so cost only sets the STANDALONE / COMBINE-ONLY
+label. (A v3.1 run's cost-based rule threw such signals away; carried over from the cloud v3.2 of 2026-10-06.)
 
 **C. Confirm cell** — the frozen spec run unchanged on each CONFIRM fold, judged per fold by its `pass_rule`. Header
 `hypothesis: H<n>`, `slice: CONFIRM`, `kind: confirm`, `candidate: F<n>`. The result starts with `weight_applied: <w>` and
@@ -400,8 +407,13 @@ detail: <one line — S2: the 8 cells; S3: cells used / minutes elapsed>
    confirm: C1=..., C2=..., C3=...
    val: <cell_NN, the deciding number vs the pass rule, VAL_NOTE>
    k: K_train <n>, K_val <n>, K_cum_train <n>, K_cum_val <n>
+   label: <STANDALONE | COMBINE-ONLY>      # from the cost line
+   turnover: <per day> ; cost_line: <gross vs cost>
+   correlations: <with the market, with simple baselines (momentum, reversal, volatility), and with every other
+                  VAL-PASS candidate — so a later combination stage knows what is new>
    test_check: <the pass_rule, to run unchanged on TEST>
    ```
+   The routine never combines signals or fits weights; it hands them on with what a combiner needs.
 2. **`REPORT.md`**, one page: source mode and item used; the belief table (hypothesis, prior -> posterior, the evidence chain with kind and slice per cell, state, children,
    candidates); the candidate
    table (F, hypothesis, variant_of, per-fold CONFIRM branches and effects — the decay shape — VAL branch and number); the cost

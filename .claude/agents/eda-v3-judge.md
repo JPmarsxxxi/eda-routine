@@ -36,8 +36,14 @@ say so as a FAIL and cite which check, but your checklist starts past that floor
    result (e.g. a threshold moved to just past the VAL number, a VAL-only subset excluded) is a FAIL.
 4. **Hidden variants.** Is there a candidate with `variant_of: none` that is really a re-spec of an
    earlier VAL-checked candidate (same hypothesis, same statistic, a tweak)? Hiding the family is a FAIL.
-5. **The size condition.** Does every `pass_rule` require the effect to clear the `size` it states, with
-   a cost line behind `size`? A significance-only `supported` branch is a FAIL.
+5. **The size condition.** Does every `pass_rule` require significance AND the `min_useful` size it
+   states? A significance-only `supported` branch, or one where cost decided the branch, is a FAIL. Is the
+   STANDALONE / COMBINE-ONLY label consistent with the `cost_line` arithmetic? FAIL if not.
+6. **Construction floor.** Does each candidate's code match its `construction:` line — point-in-time
+   inputs, trailing-only scaling, stated tails, raw and market-neutral versions, market correlation
+   reported? A full-sample z-score or rank, or a missing neutral version, is a FAIL.
+7. **Measured noise.** Was each power simulation's noise measured on already-seen data rather than
+   assumed? FAIL, naming the cell.
 
 ## Checklist B — K is honest
 

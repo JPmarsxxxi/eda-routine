@@ -46,8 +46,10 @@ def candidate(hypothesis, variant_of="none"):
     return f"""hypothesis: {hypothesis}
 variant_of: {variant_of}
 spec: fade the 6h block return, IC on next 6h, 10-coin panel
-pass_rule: supported if IC <= -0.03 and z <= -1.645; refuted if IC >= 0; else inconclusive
-size: IC -0.03 = 12 bp per 1-sd block, vs 6.6 bp round trip
+construction: point-in-time inputs; trailing 30d z-score; winsorised 1/99; raw and market-neutral; market corr reported
+pass_rule: supported if IC <= -0.02 and z <= -1.645; refuted if IC >= 0; else inconclusive
+min_useful: |IC| 0.02
+cost_line: IC -0.03 = 12 bp per 1-sd block vs 6.6 bp round trip -> STANDALONE
 """
 
 
@@ -187,7 +189,7 @@ class GateTest(unittest.TestCase):
             write(p + "announce.md", "# announce\n", T0 + 100 * nn)
             write(p + "result.md", res + "\n# result\n", T0 + 100 * nn + 50)
         if test_requests is None:
-            test_requests = "".join(f"## {f}\nspec_sha256: {s}\n" for f, s in shas.items())
+            test_requests = "".join(f"## {f}\nspec_sha256: {s}\nlabel: STANDALONE\n" for f, s in shas.items())
         write(os.path.join(d, "TEST_REQUESTS.md"), "# TEST_REQUESTS\n" + test_requests)
         for name, text in (files or {}).items():
             write(os.path.join(d, name), text)
@@ -394,6 +396,16 @@ class GateTest(unittest.TestCase):
 
     def test_test_request_wrong_sha(self):
         self.assertFails(self.build(test_requests="## F1\nspec_sha256: abc\n"), "test_request_bad_sha")
+
+    def test_test_request_needs_label(self):
+        report = self.build()
+        sha = gate.sha256_of(os.path.join(report.run_dir, "candidates", "F1.md"))
+        write(os.path.join(report.run_dir, "TEST_REQUESTS.md"), f"## F1\nspec_sha256: {sha}\nlabel: maybe\n")
+        self.assertFails(gate.check_run(report.run_dir), "test_request_no_label")
+
+    def test_candidate_needs_construction(self):
+        self.assertFails(self.build(cands={"F1": candidate("H1").replace("construction:", "notes:")}),
+                         "candidate_missing_fields")
 
     # ---------------------------------------------------------------- states and stop rules
 
