@@ -1,7 +1,9 @@
 """Tests for gate.py. Run: python -m unittest discover -s tests
 
-Each test builds a small, synthetic v3 run folder that passes the gate, breaks one rule, and checks
-the gate names that rule. The run is not real data - only the files gate.py reads.
+Each test builds a small, synthetic v3.3 run folder that passes the gate, breaks one rule, and checks
+the gate names that rule. The run is not real data - only the files gate.py reads. File mtimes are set
+explicitly (candidates first, then each cell's rule, then its result) so ordering checks are deterministic.
+Posteriors are computed from the cells' weights unless a test gives one, so a test only states what it breaks.
 """
 import os
 import sys
@@ -21,9 +23,10 @@ slices:
 - VAL 2023-03-25 2023-12-01
 """
 
+T0 = 1_700_000_000
 
-def belief(hid, title, born_on, prior, posterior, state, parent="none", seen_on="none",
-           forbids="a positive IC on the next fold"):
+
+def belief(hid, title, born_on, state, prior, posterior, parent="none", forbids="a positive IC on the next fold"):
     return f"""## {hid} — {title}
 parent: {parent}
 source: OBSERVATIONS.md #1
@@ -32,78 +35,105 @@ hypothesis: a change in close predicts the next block because of a reason
 forbids: {forbids}
 rivals: volatility; time of day
 born_on: {born_on}
-seen_on: {seen_on}
 prior: {prior}
 anchor: uninformative default 0.4
-posterior: {posterior}
+posterior: {posterior:.4f}
 state: {state}
-evidence:
-- see cells
+"""
+
+
+def candidate(hypothesis, variant_of="none"):
+    return f"""hypothesis: {hypothesis}
+variant_of: {variant_of}
+spec: fade the 6h block return, IC on next 6h, 10-coin panel
+pass_rule: supported if IC <= -0.03 and z <= -1.645; refuted if IC >= 0; else inconclusive
+size: IC -0.03 = 12 bp per 1-sd block, vs 6.6 bp round trip
 """
 
 
 def base_beliefs():
-    # H1: 0.40 -> C1 x10 -> C2 x10 -> VAL x10 = 0.9985, HIGH-VAL.
-    # H2: 0.30 -> C1 x0.1 = 0.041, LOW; its redirect spawned H3, still OPEN and untested.
+    # H1 searched, frozen as F1, held on CONFIRM, passed VAL -> CHECKED. H2 searched three ways, dropped.
+    # H3 (child of H2, suggested by cell_05) still OPEN.
     return {
-        "H1": dict(title="6h reversal", born_on="EXPLORE #1", prior=0.40, posterior=0.998, state="HIGH-VAL"),
-        "H2": dict(title="daily reversal", born_on="EXPLORE #2", prior=0.30, posterior=0.041, state="LOW"),
-        "H3": dict(title="crash rebound", born_on="EXPLORE cell_04", prior=0.30, posterior=0.30, state="OPEN",
-                   parent="H2"),
+        "H1": dict(title="6h reversal", born_on="EXPLORE #1", state="CHECKED", prior=0.40),
+        "H2": dict(title="daily reversal", born_on="EXPLORE #2", state="DROPPED", prior=0.30),
+        "H3": dict(title="crash rebound", born_on="C2 cell_05", state="OPEN", parent="H2", prior=0.30),
     }
+
+
+def base_candidates():
+    return {"F1": candidate("H1")}
 
 
 def base_cells():
-    # nn: (hypothesis, slice, kind, branch, weight)
+    # nn: dict(h, slice, kind, w, ...); kind-specific: variants / controls / conditional / suggests / candidate / folds / branch
     return {
-        1: ("H1", "C1", "test", "supported", 10),
-        2: ("H1", "C2", "test", "supported", 10),
-        3: ("H2", "C1", "test", "refuted", 0.1),
-        4: ("H2", "EXPLORE", "redirect", "inconclusive", 1),
-        5: ("H1", "VAL", "val", "supported", 10),
+        1: dict(h="H1", slice="EXPLORE", kind="search", w=2, variants=12),
+        2: dict(h="H1", slice="TRAIN", kind="search", w=2, variants=30, controls="trailing volatility"),
+        3: dict(h="H2", slice="C1", kind="search", w=0.5, variants=5, controls="trailing volatility"),
+        4: dict(h="H2", slice="TRAIN", kind="search", w=0.5, variants=4, conditional="high-vol regime only"),
+        5: dict(h="H2", slice="C2", kind="search", w=0.5, variants=3, suggests="H3"),
+        6: dict(h="H1", slice="CONFIRM", kind="confirm", w=10, candidate="F1",
+                folds="C1=supported, C2=supported, C3=inconclusive"),
+        7: dict(h="H1", slice="VAL", kind="val", w=10, candidate="F1", branch="supported"),
     }
 
 
-BASE_STOP = dict(rule="S2", open_count=1, low_count=1, high_count=1,
-                 detail="three picks at <= 3 pp")
+def posterior_of(hid, prior, cells):
+    odds = prior / (1 - prior)
+    for c in cells.values():
+        if c["h"] == hid:
+            odds *= c["w"]
+    return odds / (1 + odds)
 
 
-def write(path, text):
+BASE_STOP = dict(rule="S3", open_count=1, dropped_count=1, frozen_count=1, val_pass_count=1, minutes=185,
+                 detail="185 minutes elapsed")
+
+
+def write(path, text, mtime=None):
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w", encoding="utf-8") as fh:
+    with open(path, "w", encoding="utf-8", newline="\n") as fh:
         fh.write(text)
+    if mtime is not None:
+        os.utime(path, (mtime, mtime))
 
 
 RUN = "2026-01-01_test"
-LEDGER_HEAD = ("| date | run | target | mode | stop | cells | K | dataset | K_cum | methods_score |\n"
-               "|---|---|---|---|---|---|---|---|---|---|\n")
+LEDGER_HEAD = ("| date | run | target | mode | stop | cells | K_train | K_val | dataset | K_cum_train | K_cum_val | methods_score |\n"
+               "|---|---|---|---|---|---|---|---|---|---|---|---|\n")
 
 
-def memory_files(beliefs, cells, mode="E", k=None, k_cum=None, score="pending", prior_rows=""):
-    """Valid MEMORY/ contents for a run: one LEDGER row, a FINDINGS entry per moved non-LOW hypothesis,
-    one LOW line, an empty-ish DATA_FACTS."""
-    scored = sum(1 for c in cells.values() if c[2] in ("test", "val"))
-    k = scored if k is None else k
-    k_cum = k if k_cum is None else k_cum
-    ledger = LEDGER_HEAD + prior_rows + (
-        f"| 2026-01-01 | {RUN} | test | {mode} | S2 | {len(cells)} | {k} | ds1 | {k_cum} | {score} |\n")
-    findings = "# FINDINGS\n\n"
-    lows = [h for h, kw in beliefs.items() if kw["state"] == "LOW"]
-    if lows:
-        findings += f"- {RUN} LOW: {', '.join(lows)}\n\n"
-    for h, kw in beliefs.items():
-        if kw["state"] != "LOW" and abs(kw["posterior"] - kw["prior"]) >= 0.05:
-            findings += f"### {RUN} {h} — {kw['title']}\nclaim and state in one line\nneeds: nothing\n\n"
-    return {"LEDGER.md": ledger, "FINDINGS.md": findings, "DATA_FACTS.md": "# DATA_FACTS\n- ds1: fact\n"}
+def k_of(cells):
+    k_train = sum(c.get("variants", 0) for c in cells.values() if c["kind"] == "search")
+    k_train += sum(1 for c in cells.values() if c["kind"] == "confirm")
+    return k_train, sum(1 for c in cells.values() if c["kind"] == "val")
+
+
+def ledger_row(cells, mode="E", k=None, k_cum=None, score="pending"):
+    k = k or k_of(cells)
+    k_cum = k_cum or k
+    return (f"| 2026-01-01 | {RUN} | test | {mode} | S3 | {len(cells)} | {k[0]} | {k[1]} | ds1 | "
+            f"{k_cum[0]} | {k_cum[1]} | {score} |\n")
+
+
+FINDINGS = f"# FINDINGS\n\n- {RUN} DROPPED: H2\n\n### {RUN} F1 — 6h reversal\nclaim\nVAL-PASS\n\n"
+
+
+def memory_files(cells, mode="E"):
+    """Valid MEMORY/ contents for a run: one LEDGER row, a FINDINGS entry for F1, a DROPPED line, a DATA_FACTS file."""
+    return {"LEDGER.md": LEDGER_HEAD + ledger_row(cells, mode), "FINDINGS.md": FINDINGS,
+            "DATA_FACTS.md": "# DATA_FACTS\n- ds1: fact\n"}
 
 
 class GateTest(unittest.TestCase):
-    def build(self, beliefs=None, cells=None, stop=None, splits=SPLITS, mode="E", memory=None, files=None):
+    def build(self, beliefs=None, cells=None, cands=None, stop=None, splits=SPLITS, mode="E", memory=None,
+              files=None, test_requests=None, decisions=None):
         """Synthetic run at <tmp>/runs/<RUN> with its MEMORY at <tmp>/MEMORY (gate's default location).
-        `memory` overrides individual MEMORY files; `files` adds or replaces files in the run folder.
-        A cell tuple may carry a 6th element: its `method:` header."""
+        `memory` overrides individual MEMORY files; `files` adds or replaces files in the run folder."""
         beliefs = beliefs if beliefs is not None else base_beliefs()
         cells = cells if cells is not None else base_cells()
+        cands = cands if cands is not None else base_candidates()
         stop = stop if stop is not None else BASE_STOP
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
@@ -111,23 +141,54 @@ class GateTest(unittest.TestCase):
         os.makedirs(d)
         for name in gate.REQUIRED_FILES:
             write(os.path.join(d, name), f"# {name}\n")
-        write(os.path.join(d, "DECISIONS.md"), f"# DECISIONS\nmode: {mode}\n")
-        mem = memory_files(beliefs, cells, mode)
+        if decisions is None:
+            decisions = "".join(f"- drop {h}: nothing survived three looks\n" for h, kw in beliefs.items()
+                                if kw["state"] == "DROPPED")
+        write(os.path.join(d, "DECISIONS.md"), f"# DECISIONS\nmode: {mode}\n{decisions}")
+        mem = memory_files(cells, mode)
         mem.update(memory or {})
         for name, text in mem.items():
             if text is not None:
                 write(os.path.join(tmp.name, "MEMORY", name), text)
         write(os.path.join(d, "DATA_PROFILE.md"), "".join(f"## {i}. section\n" for i in range(1, 8)))
         write(os.path.join(d, "SPLITS.md"), splits)
-        write(os.path.join(d, "BELIEFS.md"), "# BELIEFS\n\n" + "\n".join(belief(h, **kw) for h, kw in beliefs.items()))
+        blocks = []
+        for h, kw in beliefs.items():
+            kw = dict(kw)
+            kw.setdefault("posterior", posterior_of(h, kw["prior"], cells))
+            blocks.append(belief(h, **kw))
+        write(os.path.join(d, "BELIEFS.md"), "# BELIEFS\n\n" + "\n".join(blocks))
         write(os.path.join(d, "STOP_REASON.md"), "".join(f"{k}: {v}\n" for k, v in stop.items()))
+        shas = {}
+        for fid, text in cands.items():
+            p = os.path.join(d, "candidates", f"{fid}.md")
+            write(p, text, T0)
+            shas[fid] = gate.sha256_of(p)
         os.makedirs(os.path.join(d, "cells"))
-        for nn, (hid, sl, kind, branch, weight, *rest) in cells.items():
+        for nn, c in cells.items():
             p = os.path.join(d, "cells", f"cell_{nn:02d}_")
-            method = f"method: {rest[0]}\n" if rest else ""
-            write(p + "rule.md", f"hypothesis: {hid}\nslice: {sl}\nkind: {kind}\n{method}\n# rule\n")
-            write(p + "announce.md", "# announce\n")
-            write(p + "result.md", f"branch: {branch}\nweight_applied: {weight}\n\n# result\n")
+            head = f"hypothesis: {c['h']}\nslice: {c['slice']}\nkind: {c['kind']}\n"
+            if c.get("candidate"):
+                head += f"candidate: {c['candidate']}\n"
+            if c["kind"] == "val":
+                head += f"spec_sha256: {c.get('sha', shas.get(c.get('candidate'), 'x'))}\n"
+            if c.get("method"):
+                head += f"method: {c['method']}\n"
+            if c["kind"] == "search":
+                head += f"controls: {c.get('controls', 'none')}\nconditional: {c.get('conditional', 'none')}\n"
+            res = f"weight_applied: {c['w']}\n"
+            if c["kind"] == "search":
+                res += f"variants: {c.get('variants', 1)}\nsuggests: {c.get('suggests', 'none')}\n"
+            elif c["kind"] == "confirm":
+                res += f"folds: {c['folds']}\n"
+            else:
+                res += f"branch: {c['branch']}\n"
+            write(p + "rule.md", head + "\n# rule\n", T0 + 100 * nn)
+            write(p + "announce.md", "# announce\n", T0 + 100 * nn)
+            write(p + "result.md", res + "\n# result\n", T0 + 100 * nn + 50)
+        if test_requests is None:
+            test_requests = "".join(f"## {f}\nspec_sha256: {s}\n" for f, s in shas.items())
+        write(os.path.join(d, "TEST_REQUESTS.md"), "# TEST_REQUESTS\n" + test_requests)
         for name, text in (files or {}).items():
             write(os.path.join(d, name), text)
         return gate.check_run(d)
@@ -138,11 +199,16 @@ class GateTest(unittest.TestCase):
     def assertFails(self, report, code):
         self.assertIn(code, self.codes(report), [f"{i.code}: {i.message}" for i in report.issues])
 
+    def assertPasses(self, report):
+        self.assertTrue(report.ok, [f"{i.code}: {i.message}" for i in report.issues])
+
+    def with_ledger(self, cells):
+        return {"LEDGER.md": LEDGER_HEAD + ledger_row(cells)}
+
     # ---------------------------------------------------------------- the baseline
 
     def test_baseline_passes(self):
-        report = self.build()
-        self.assertTrue(report.ok, [f"{i.code}: {i.message}" for i in report.issues])
+        self.assertPasses(self.build())
 
     # ---------------------------------------------------------------- splits
 
@@ -157,160 +223,239 @@ class GateTest(unittest.TestCase):
         splits = SPLITS.replace("- C2 2022-01-08", "- C2 2021-12-01")
         self.assertFails(self.build(splits=splits), "splits_overlap")
 
-    # ---------------------------------------------------------------- slice rules
+    # ---------------------------------------------------------------- search is free on TRAIN, never on VAL
 
-    def test_test_on_birth_slice(self):
+    def test_search_repeats_any_train_slice(self):
         cells = base_cells()
-        cells[6] = ("H3", "EXPLORE", "test", "inconclusive", 1)
-        cells[5], cells[6] = cells[6], cells[5]  # keep VAL last
-        self.assertFails(self.build(cells=cells), "slice_birth_or_seen")
+        cells[8] = dict(h="H3", slice="C2", kind="search", w=1.5, variants=4)   # its own birth slice: fine
+        cells[9] = dict(h="H3", slice="C2", kind="search", w=1.5, variants=4)   # the same slice again: fine
+        cells[10] = dict(h="H3", slice="C1, C2", kind="search", w=1, variants=2)
+        self.assertPasses(self.build(cells=cells, memory=self.with_ledger(cells)))
 
-    def test_test_on_seen_slice(self):
+    def test_search_on_val(self):
+        cells = base_cells()
+        cells[5]["slice"] = "C3, VAL"
+        self.assertFails(self.build(cells=cells), "search_on_val")
+
+    def test_born_on_val(self):
         beliefs = base_beliefs()
-        beliefs["H3"]["seen_on"] = "C1"
+        beliefs["H3"]["born_on"] = "VAL cell_07"
+        self.assertFails(self.build(beliefs=beliefs), "beliefs_bad_born_on")
+
+    def test_search_needs_variants(self):
         cells = base_cells()
-        cells[5] = ("H3", "C1", "test", "inconclusive", 1)
-        cells[6] = ("H1", "VAL", "val", "supported", 10)
-        self.assertFails(self.build(beliefs=beliefs, cells=cells), "slice_birth_or_seen")
+        cells[1]["variants"] = 0
+        self.assertFails(self.build(cells=cells), "cell_result_no_variants")
 
-    def test_fold_skipped(self):
-        cells = base_cells()
-        cells[2] = ("H1", "C3", "test", "supported", 10)
-        self.assertFails(self.build(cells=cells), "slice_fold_skipped")
+    # ---------------------------------------------------------------- prior -> posterior updating
 
-    def test_slice_opened_twice(self):
-        cells = base_cells()
-        cells[2] = ("H1", "C1", "test", "supported", 10)
-        self.assertFails(self.build(cells=cells), "slice_opened_twice")
-
-    def test_child_born_on_fold_may_use_explore_and_other_folds(self):
-        beliefs = base_beliefs()
-        # H3 born on C1; tested on EXPLORE (x2) then C2 (x2): 0.30 -> 0.632. C1 is skipped because it is closed.
-        beliefs["H3"].update(born_on="C1 cell_03", posterior=0.632)
-        cells = base_cells()
-        cells[5] = ("H3", "EXPLORE", "test", "supported", 2)
-        cells[6] = ("H3", "C2", "test", "supported", 2)
-        cells[7] = ("H1", "VAL", "val", "supported", 10)
-        report = self.build(beliefs=beliefs, cells=cells)
-        self.assertTrue(report.ok, [f"{i.code}: {i.message}" for i in report.issues])
-
-    def test_redirect_on_unopened_fold(self):
-        cells = base_cells()
-        cells[4] = ("H2", "C2", "redirect", "inconclusive", 1)
-        self.assertFails(self.build(cells=cells), "redirect_unopened_slice")
-
-    def test_no_story_on_fold(self):
-        beliefs = base_beliefs()
-        beliefs["H2"]["forbids"] = "none - NO-STORY"
-        self.assertFails(self.build(beliefs=beliefs), "slice_no_story_on_fold")
-
-    # ---------------------------------------------------------------- VAL
-
-    def test_val_after_one_fold(self):
-        cells = base_cells()
-        del cells[2]
-        beliefs = base_beliefs()
-        beliefs["H1"].update(posterior=0.985)
-        self.assertFails(self.build(beliefs=beliefs, cells=cells), "val_not_high_confirm")
-
-    def test_val_before_tests(self):
-        cells = base_cells()
-        cells[3], cells[5] = cells[5], cells[3]
-        self.assertFails(self.build(cells=cells), "val_before_tests")
-
-    def test_high_confirm_without_val(self):
-        cells = base_cells()
-        del cells[5]
-        beliefs = base_beliefs()
-        beliefs["H1"].update(posterior=0.985, state="HIGH-CONFIRM")
-        self.assertFails(self.build(beliefs=beliefs, cells=cells), "val_owed")
-
-    # ---------------------------------------------------------------- posteriors and states
+    def test_missing_prior(self):
+        report = self.build()
+        p = os.path.join(report.run_dir, "BELIEFS.md")
+        with open(p, encoding="utf-8") as fh:
+            text = fh.read().replace("prior: 0.3\n", "", 1)
+        write(p, text)
+        self.assertFails(gate.check_run(report.run_dir), "beliefs_missing_fields")
 
     def test_posterior_mismatch(self):
         beliefs = base_beliefs()
-        beliefs["H2"]["posterior"] = 0.15
-        beliefs["H2"]["state"] = "OPEN"
+        beliefs["H1"]["posterior"] = 0.60
         self.assertFails(self.build(beliefs=beliefs), "posterior_mismatch")
 
-    def test_weight_over_cap(self):
+    def test_search_weight_capped_at_3(self):
         cells = base_cells()
-        cells[3] = ("H2", "C1", "test", "refuted", 0.01)
-        beliefs = base_beliefs()
-        beliefs["H2"]["posterior"] = 0.004
-        self.assertFails(self.build(beliefs=beliefs, cells=cells), "weight_over_cap")
+        cells[1]["w"] = 5
+        self.assertFails(self.build(cells=cells), "weight_over_cap")
 
-    def test_state_does_not_match_posterior(self):
-        beliefs = base_beliefs()
-        beliefs["H2"]["state"] = "OPEN"
-        self.assertFails(self.build(beliefs=beliefs), "state_mismatch")
-
-    def test_high_confirm_needs_two_folds(self):
+    def test_check_weight_capped_at_10(self):
         cells = base_cells()
-        del cells[2]
-        del cells[5]
-        beliefs = base_beliefs()
-        beliefs["H1"].update(posterior=0.870, state="HIGH-CONFIRM")
-        self.assertFails(self.build(beliefs=beliefs, cells=cells), "state_mismatch")
+        cells[7]["w"] = 20
+        self.assertFails(self.build(cells=cells), "weight_over_cap")
 
-    def test_refuted_fold_blocks_high_confirm(self):
-        # H1: C1 x10, C2 x0.5, C3 x10 -> 0.97, but a refuted fold means it is HIGH, not HIGH-CONFIRM.
+    def test_missing_weight(self):
+        report = self.build()
+        write(os.path.join(report.run_dir, "cells", "cell_01_result.md"), "variants: 12\nsuggests: none\n", T0 + 150)
+        self.assertFails(gate.check_run(report.run_dir), "cell_result_no_weight")
+
+    # ---------------------------------------------------------------- no lazy drops, every lead answered
+
+    def test_drop_after_one_look(self):
         cells = base_cells()
-        cells[2] = ("H1", "C2", "test", "refuted", 0.5)
-        cells[5] = ("H1", "C3", "test", "supported", 10)
+        del cells[4], cells[5]
         beliefs = base_beliefs()
-        beliefs["H1"].update(posterior=0.971, state="HIGH-CONFIRM")
-        self.assertFails(self.build(beliefs=beliefs, cells=cells), "state_mismatch")
+        beliefs["H3"]["born_on"] = "C1 cell_03"
+        self.assertFails(self.build(cells=cells, beliefs=beliefs, memory=self.with_ledger(cells)), "drop_too_early")
 
-    # ---------------------------------------------------------------- stop rules
-
-    def test_s4_with_pickable_hypothesis(self):
-        stop = dict(BASE_STOP, rule="S4")
-        self.assertFails(self.build(stop=stop), "stop_reason_s4_violated")
-
-    def test_s4_when_exhausted_passes(self):
-        # H3 born on C1, seen on C2 and C3, already tested on EXPLORE -> nothing left: S4 is right.
-        beliefs = base_beliefs()
-        beliefs["H3"].update(born_on="C1 cell_03", seen_on="C2, C3", posterior=0.462)
+    def test_drop_without_rival_controlled(self):
         cells = base_cells()
-        cells[5] = ("H3", "EXPLORE", "test", "supported", 2)
-        cells[6] = ("H1", "VAL", "val", "supported", 10)
-        stop = dict(BASE_STOP, rule="S4")
-        report = self.build(beliefs=beliefs, cells=cells, stop=stop)
-        self.assertTrue(report.ok, [f"{i.code}: {i.message}" for i in report.issues])
+        cells[3]["controls"] = "none"
+        self.assertFails(self.build(cells=cells), "drop_no_rival_controlled")
 
-    def test_s2_with_nothing_left_is_s4(self):
-        beliefs = base_beliefs()
-        beliefs["H3"].update(born_on="C1 cell_03", seen_on="C2, C3", posterior=0.462)
+    def test_drop_without_conditional(self):
         cells = base_cells()
-        cells[5] = ("H3", "EXPLORE", "test", "supported", 2)
-        cells[6] = ("H1", "VAL", "val", "supported", 10)
-        self.assertFails(self.build(beliefs=beliefs, cells=cells), "stop_reason_s2_no_tests")
+        cells[4]["conditional"] = "none"
+        self.assertFails(self.build(cells=cells), "drop_no_conditional")
+
+    def test_drop_with_posterior_up(self):
+        cells = base_cells()
+        for nn in (3, 4, 5):
+            cells[nn]["w"] = 1.5
+        self.assertFails(self.build(cells=cells), "drop_posterior_not_down")
+
+    def test_drop_without_reason(self):
+        self.assertFails(self.build(decisions=""), "drop_no_reason")
+
+    def test_search_needs_suggests(self):
+        report = self.build()
+        write(os.path.join(report.run_dir, "cells", "cell_01_result.md"), "weight_applied: 2\nvariants: 12\n", T0 + 150)
+        self.assertFails(gate.check_run(report.run_dir), "cell_result_no_suggests")
+
+    def test_suggests_unknown_hypothesis(self):
+        cells = base_cells()
+        cells[5]["suggests"] = "H3, H9"
+        self.assertFails(self.build(cells=cells), "suggests_unknown_hypothesis")
+
+    # ---------------------------------------------------------------- freezing and CONFIRM
+
+    def test_check_without_candidate_file(self):
+        self.assertFails(self.build(cands={}), "check_no_candidate")
+
+    def test_spec_edited_after_check_set_up(self):
+        report = self.build()
+        os.utime(os.path.join(report.run_dir, "candidates", "F1.md"), (T0 + 1000, T0 + 1000))
+        self.assertFails(gate.check_run(report.run_dir), "check_spec_not_frozen")
+
+    def test_confirm_must_name_every_fold(self):
+        cells = base_cells()
+        cells[6]["folds"] = "C1=supported, C2=supported"
+        self.assertFails(self.build(cells=cells), "cell_result_bad_folds")
+
+    def test_confirm_twice(self):
+        cells = base_cells()
+        cells[8], cells[7] = cells[7], dict(cells[6], w=1)
+        self.assertFails(self.build(cells=cells), "confirm_twice")
+
+    def test_frozen_but_never_confirmed(self):
+        cands = base_candidates()
+        cands["F2"] = candidate("H3")
+        self.assertFails(self.build(cands=cands, stop=dict(BASE_STOP, frozen_count=2)), "confirm_owed")
+
+    # ---------------------------------------------------------------- VAL
+
+    def test_val_after_failed_confirm(self):
+        cells = base_cells()
+        cells[6]["folds"] = "C1=supported, C2=refuted, C3=supported"
+        self.assertFails(self.build(cells=cells), "val_not_confirm_shown")
+
+    def test_val_without_confirm(self):
+        cells = base_cells()
+        del cells[6]
+        self.assertFails(self.build(cells=cells), "val_not_confirm_shown")
+
+    def test_val_spec_changed(self):
+        cells = base_cells()
+        cells[7]["sha"] = "0" * 64
+        self.assertFails(self.build(cells=cells), "val_spec_mismatch")
+
+    def test_val_twice_on_same_spec(self):
+        cells = base_cells()
+        cells[8] = dict(cells[7], w=1)
+        self.assertFails(self.build(cells=cells), "val_twice")
+
+    def test_confirm_shown_without_val(self):
+        cells = base_cells()
+        del cells[7]
+        beliefs = base_beliefs()
+        beliefs["H1"]["state"] = "OPEN"
+        stop = dict(BASE_STOP, open_count=2, val_pass_count=0)
+        self.assertFails(self.build(beliefs=beliefs, cells=cells, stop=stop), "val_owed")
+
+    def test_variant_after_val_fail_passes(self):
+        # F1 fails VAL; back to TRAIN search; F2 (variant of F1) frozen, confirmed, checked on VAL and passes.
+        cells = base_cells()
+        cells[7].update(branch="refuted", w=0.2)
+        cells[8] = dict(h="H1", slice="TRAIN", kind="search", w=1, variants=8)
+        cells[9] = dict(h="H1", slice="CONFIRM", kind="confirm", w=5, candidate="F2",
+                        folds="C1=supported, C2=supported, C3=supported")
+        cells[10] = dict(h="H1", slice="VAL", kind="val", w=10, candidate="F2", branch="supported")
+        cands = base_candidates()
+        cands["F2"] = candidate("H1", variant_of="F1")
+        memory = self.with_ledger(cells)
+        memory["FINDINGS.md"] = FINDINGS + f"### {RUN} F2 — variant\nx\n"
+        self.assertPasses(self.build(cells=cells, cands=cands, stop=dict(BASE_STOP, frozen_count=2), memory=memory))
+
+    def test_bad_variant_of(self):
+        self.assertFails(self.build(cands={"F1": candidate("H1", variant_of="F9")}), "candidate_bad_variant_of")
+
+    # ---------------------------------------------------------------- TEST is handed to the user
+
+    def test_val_pass_not_requested(self):
+        self.assertFails(self.build(test_requests=""), "test_request_missing")
+
+    def test_test_request_wrong_sha(self):
+        self.assertFails(self.build(test_requests="## F1\nspec_sha256: abc\n"), "test_request_bad_sha")
+
+    # ---------------------------------------------------------------- states and stop rules
+
+    def test_checked_without_val(self):
+        beliefs = base_beliefs()
+        beliefs["H3"]["state"] = "CHECKED"
+        self.assertFails(self.build(beliefs=beliefs, stop=dict(BASE_STOP, open_count=0)), "state_mismatch")
 
     def test_s1_with_open_entry(self):
-        stop = dict(BASE_STOP, rule="S1")
-        self.assertFails(self.build(stop=stop), "stop_reason_s1_violated")
+        self.assertFails(self.build(stop=dict(BASE_STOP, rule="S1")), "stop_reason_s1_violated")
+
+    def test_s1_too_early(self):
+        beliefs = base_beliefs()
+        del beliefs["H3"]
+        cells = base_cells()
+        cells[5]["suggests"] = "not pursued: no mechanism"
+        stop = dict(BASE_STOP, rule="S1", open_count=0, minutes=40)
+        self.assertFails(self.build(beliefs=beliefs, cells=cells, stop=stop), "stop_reason_s1_too_early")
+
+    def test_s1_after_floor_passes(self):
+        beliefs = base_beliefs()
+        del beliefs["H3"]
+        cells = base_cells()
+        cells[5]["suggests"] = "not pursued: no mechanism"
+        stop = dict(BASE_STOP, rule="S1", open_count=0, minutes=95)
+        self.assertPasses(self.build(beliefs=beliefs, cells=cells, stop=stop))
+
+    def test_s3_under_cap(self):
+        self.assertFails(self.build(stop=dict(BASE_STOP, minutes=30)), "stop_reason_s3_under_cap")
+
+    def test_s2_needs_a_dry_streak(self):
+        self.assertFails(self.build(stop=dict(BASE_STOP, rule="S2")), "stop_reason_s2_violated")
+
+    def test_s2_with_dry_streak_passes(self):
+        cells = base_cells()
+        for nn in range(8, 8 + gate.DRY_STREAK):
+            cells[nn] = dict(h="H3", slice="TRAIN", kind="search", w=1, variants=3)
+        self.assertPasses(self.build(cells=cells, stop=dict(BASE_STOP, rule="S2"), memory=self.with_ledger(cells)))
 
     def test_count_mismatch(self):
-        stop = dict(BASE_STOP, open_count=2)
-        self.assertFails(self.build(stop=stop), "stop_reason_count_mismatch")
+        self.assertFails(self.build(stop=dict(BASE_STOP, open_count=2)), "stop_reason_count_mismatch")
 
     # ---------------------------------------------------------------- headers
 
     def test_rule_without_header(self):
         report = self.build()
-        rule = os.path.join(report.run_dir, "cells", "cell_01_rule.md")
-        write(rule, "# rule with no header\n")
+        write(os.path.join(report.run_dir, "cells", "cell_01_rule.md"), "# rule with no header\n", T0 + 100)
         self.assertFails(gate.check_run(report.run_dir), "cell_rule_no_header")
 
-    # ---------------------------------------------------------------- v3.2: mode
+    def test_result_before_rule(self):
+        report = self.build()
+        os.utime(os.path.join(report.run_dir, "cells", "cell_02_result.md"), (T0, T0))
+        self.assertFails(gate.check_run(report.run_dir), "cell_result_before_rule")
+
+    # ---------------------------------------------------------------- mode
 
     def test_missing_mode_line(self):
         report = self.build()
-        write(os.path.join(report.run_dir, "DECISIONS.md"), "# DECISIONS\nno mode here\n")
+        write(os.path.join(report.run_dir, "DECISIONS.md"), "# DECISIONS\nno mode here\n- drop H2: x\n")
         self.assertFails(gate.check_run(report.run_dir), "decisions_no_mode")
 
-    # ---------------------------------------------------------------- v3.2: installs
+    # ---------------------------------------------------------------- installs
 
     INSTALL_ROW = ("| import | package | version | source | claim | replaces | adds | validation | result |\n"
                    "|---|---|---|---|---|---|---|---|---|\n"
@@ -320,8 +465,7 @@ class GateTest(unittest.TestCase):
     def test_base_imports_need_no_row(self):
         files = {"scripts/cell_01.py": "import numpy as np\nfrom scipy import stats\nimport json, os\nimport common\n",
                  "scripts/common.py": "import pandas as pd\n"}
-        report = self.build(files=files)
-        self.assertTrue(report.ok, [f"{i.code}: {i.message}" for i in report.issues])
+        self.assertPasses(self.build(files=files))
 
     def test_unlogged_install(self):
         self.assertFails(self.build(files={"scripts/cell_01.py": "import ruptures as rpt\n"}), "install_unlogged")
@@ -329,8 +473,7 @@ class GateTest(unittest.TestCase):
     def test_logged_and_validated_install_passes(self):
         files = {"scripts/cell_01.py": "import ruptures as rpt\n", "INSTALLS.md": self.INSTALL_ROW,
                  "cells/install_ruptures.md": "planted break at 5000 found at 5000\n"}
-        report = self.build(files=files)
-        self.assertTrue(report.ok, [f"{i.code}: {i.message}" for i in report.issues])
+        self.assertPasses(self.build(files=files))
 
     def test_install_unpinned_bad_source_failed_validation(self):
         row = self.INSTALL_ROW.replace("1.1.9", "latest").replace("| pypi |", "| github |").replace("| PASS |", "| FAIL |")
@@ -347,7 +490,7 @@ class GateTest(unittest.TestCase):
         self.assertFails(report, "install_no_validation")
         self.assertFails(report, "install_no_reason")
 
-    # ---------------------------------------------------------------- v3.2: method fidelity (modes B/C)
+    # ---------------------------------------------------------------- method fidelity (modes B/C)
 
     SPEC = """# METHOD_SPEC
 ## M1 — Fama-MacBeth slope on 1-month reversal
@@ -374,21 +517,21 @@ deviation_reason: paper uses CRSP stocks; we have 10 coins, so the cross-section
 
     def test_mode_b_with_cited_method_passes(self):
         cells = base_cells()
-        cells[1] = ("H1", "C1", "test", "supported", 10, "M1")
+        cells[1]["method"] = "M1"
         report = self.build(beliefs=self.source_beliefs(), cells=cells, mode="B", files={"METHOD_SPEC.md": self.SPEC})
-        self.assertTrue(report.ok, [f"{i.code}: {i.message}" for i in report.issues])
+        self.assertPasses(report)
 
     def test_unexplained_deviation_and_unknown_method(self):
         spec = self.SPEC.replace("deviation_reason: paper uses CRSP stocks; we have 10 coins, so the cross-section is 10 wide",
                                  "deviation_reason: none")
         cells = base_cells()
-        cells[1] = ("H1", "C1", "test", "supported", 10, "M1")
-        cells[2] = ("H1", "C2", "test", "supported", 10, "M7")
+        cells[1]["method"] = "M1"
+        cells[2]["method"] = "M7"
         report = self.build(beliefs=self.source_beliefs(), cells=cells, mode="C", files={"METHOD_SPEC.md": spec})
         self.assertFails(report, "method_deviation_unexplained")
         self.assertFails(report, "method_unknown_ref")
 
-    # ---------------------------------------------------------------- v3.2: memory
+    # ---------------------------------------------------------------- memory
 
     def test_memory_file_missing(self):
         self.assertFails(self.build(memory={"DATA_FACTS.md": None}), "memory_missing")
@@ -396,28 +539,33 @@ deviation_reason: paper uses CRSP stocks; we have 10 coins, so the cross-section
     def test_ledger_row_missing(self):
         self.assertFails(self.build(memory={"LEDGER.md": LEDGER_HEAD}), "ledger_row_missing")
 
-    def test_ledger_k_below_scored_openings(self):
-        mem = memory_files(base_beliefs(), base_cells(), k=1)
-        self.assertFails(self.build(memory={"LEDGER.md": mem["LEDGER.md"]}), "ledger_k_too_small")
+    def test_ledger_k_counts_every_variant(self):
+        cells = base_cells()   # K_train = 12 + 30 + 5 + 4 + 3 + 1 confirm = 55
+        self.assertFails(self.build(memory={"LEDGER.md": LEDGER_HEAD + ledger_row(cells, k=(7, 1))}), "ledger_k_too_small")
+
+    def test_ledger_k_val_counted(self):
+        cells = base_cells()
+        self.assertFails(self.build(memory={"LEDGER.md": LEDGER_HEAD + ledger_row(cells, k=(55, 0))}), "ledger_k_too_small")
 
     def test_ledger_kcum_carries_dataset_history(self):
-        prior = "| 2025-12-01 | old_run | t | E | S4 | 9 | 7 | ds1 | 7 | 2 |\n"
-        good = memory_files(base_beliefs(), base_cells(), k=4, k_cum=11, prior_rows=prior)["LEDGER.md"]
-        bad = memory_files(base_beliefs(), base_cells(), k=4, k_cum=4, prior_rows=prior)["LEDGER.md"]
-        self.assertTrue(self.build(memory={"LEDGER.md": good}).ok)
+        cells = base_cells()
+        prior = "| 2025-12-01 | old_run | t | E | S3 | 9 | 100 | 2 | ds1 | 100 | 2 | 2 |\n"
+        good = LEDGER_HEAD + prior + ledger_row(cells, k_cum=(155, 3))
+        bad = LEDGER_HEAD + prior + ledger_row(cells, k_cum=(155, 1))
+        self.assertPasses(self.build(memory={"LEDGER.md": good}))
         self.assertFails(self.build(memory={"LEDGER.md": bad}), "ledger_bad_kcum")
 
     def test_ledger_bad_score(self):
-        mem = memory_files(base_beliefs(), base_cells(), score="great")
-        self.assertFails(self.build(memory={"LEDGER.md": mem["LEDGER.md"]}), "ledger_bad_score")
+        self.assertFails(self.build(memory={"LEDGER.md": LEDGER_HEAD + ledger_row(base_cells(), score="great")}),
+                         "ledger_bad_score")
 
-    def test_findings_entry_missing_low_line_missing(self):
-        self.assertFails(self.build(memory={"FINDINGS.md": "# FINDINGS\n"}), "findings_missing")
-        self.assertFails(self.build(memory={"FINDINGS.md": "# FINDINGS\n"}), "findings_low_line_missing")
+    def test_findings_entry_and_dropped_line_missing(self):
+        report = self.build(memory={"FINDINGS.md": "# FINDINGS\n"})
+        self.assertFails(report, "findings_missing")
+        self.assertFails(report, "findings_line_missing")
 
     def test_findings_entry_too_long(self):
-        mem = memory_files(base_beliefs(), base_cells())["FINDINGS.md"]
-        mem = mem.replace("needs: nothing\n", "needs: nothing\nline 3\nline 4\n")
+        mem = FINDINGS.replace("VAL-PASS\n", "VAL-PASS\nline 3\nline 4\n")
         self.assertFails(self.build(memory={"FINDINGS.md": mem}), "findings_too_long")
 
     def test_memory_over_budget(self):

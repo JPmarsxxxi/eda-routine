@@ -1,64 +1,65 @@
-"""gate.py - the deterministic check that must PASS before a v3 run writes STATUS: DONE.
+"""gate.py - the deterministic check that must PASS before a v3.3 run writes STATUS: DONE.
 
 Why this exists
 ----------------
-RUNBOOK_v3.md (C:\\Users\\User\\eda-routine\\RUNBOOK_v3.md) describes a process: pre-committed rule
-files, a Bayesian ledger with sourced priors, an EXPLORE slice plus several CONFIRM folds with per-
-hypothesis slice rules, four stop rules. Prose is advisory - an unattended run under time pressure
-can write a plausible REPORT.md without any of that actually having happened, and nothing downstream
-would know. This module makes the structural half of the process CHECKED rather than trusted: it
-reads the run folder's own files and refuses to pass if what they claim is internally inconsistent.
+RUNBOOK_v3.md (C:\\Users\\User\\eda-routine\\RUNBOOK_v3.md) describes a signal engine with one hard line: SEARCH happens on
+TRAIN (EXPLORE + the CONFIRM folds) as often as the run likes; VAL is only for CHECKING a candidate whose spec was frozen
+before VAL was opened; TEST is never opened by the routine. Prose is advisory - an unattended run can write a plausible
+REPORT.md without any of that having happened. This module makes the structural half CHECKED rather than trusted: it reads
+the run folder's own files and refuses to pass if what they claim is inconsistent.
 
-Same relationship to RUNBOOK_v3.md that eda_guard.py has to data loading: it does not know whether a
-hypothesis is a good idea, or whether a decision rule was picked in good faith. It knows whether the
-required files exist, whether a rule file predates its result, whether every BELIEFS.md entry carries
-every required field, whether each cell's slice is one its hypothesis was allowed to open, whether
-each posterior is the product of the weights its result files report, whether each state matches
-its posterior and fold record, and whether STOP_REASON.md's claim matches all of that.
+It knows: whether the required files exist; whether a rule file predates its result; whether every BELIEFS.md entry and
+every candidates/F<n>.md spec carries its required fields; whether each posterior is its prior times the capped
+weight_applied chain; whether a DROPPED hypothesis met the effort floor; whether every search result answers its leads; whether a search cell stayed off VAL; whether a candidate's spec
+file existed before its CONFIRM and VAL cells, and is byte-for-byte the spec the VAL cell checked (sha256); whether VAL was
+only opened for a candidate that held on the CONFIRM folds; whether every VAL pass is handed to the user in
+TEST_REQUESTS.md; whether K (search looks and VAL checks, counted separately) is carried into MEMORY/LEDGER.md; and whether
+STOP_REASON.md's claim matches all of that.
 
 What it CANNOT enforce - stated plainly
 ----------------------------------------
-- That a prior's anchor is honestly argued, or that an evidence weight's power simulation was real
-  and not invented after the fact.
-- That "the largest expected belief shift" was actually the largest available, or that a spawned
-  hypothesis's `born_on` / `seen_on` is where it was truly first noticed.
-- That a cell's header (hypothesis / slice / kind) describes what its code actually loaded.
+- That a search cell's code did not read VAL rows (the load guard and the judge cover that).
+- That `variants:` honestly counts every spec a search cell evaluated.
+- That a new candidate after a VAL failure was found on TRAIN rather than shaped by what VAL showed.
 - Anything about statistical correctness inside a cell's code.
-These need the post-run judge agent (read-only, reads with judgement) that RUNBOOK_v3.md's ENFORCEMENT
-section names as gate.py's companion. gate.py is the floor, not the ceiling.
+These need the post-run judge agent (.claude/agents/eda-v3-judge.md). gate.py is the floor, not the ceiling.
 
 Usage
 -----
     python gate.py <run_dir> [--memory <MEMORY dir>]     (default MEMORY dir: <eda-routine>/MEMORY)
 
-Exits 0 and prints PASS if every check passes. Exits 1 and prints FAIL plus every issue, numbered, if
-not. `STATUS: DONE` may only be written to TARGET.md after this prints PASS for that run's folder.
+Exits 0 and prints PASS if every check passes. Exits 1 and prints FAIL plus every issue, numbered, if not. Runs recorded
+before v3.3 (2026-10-13) used the older format and are not expected to pass this version.
 """
 from __future__ import annotations
 
 import glob
+import hashlib
 import os
 import re
 import sys
 from dataclasses import dataclass, field
 
 
-REQUIRED_STATES = {"OPEN", "LOW", "HIGH", "HIGH-CONFIRM", "HIGH-VAL"}
-RESOLVED_STATES = {"LOW", "HIGH-VAL"}  # what S1 requires everything to be
-BELIEF_REQUIRED_KEYS = [
-    "parent", "source", "question", "hypothesis", "forbids", "rivals",
-    "born_on", "seen_on", "prior", "anchor", "posterior", "state",
-]
-STOP_REQUIRED_KEYS = ["rule", "open_count", "low_count", "high_count", "detail"]
-STOP_RULES = ("S1", "S2", "S3", "S4")
-CELL_KINDS = {"test", "redirect", "val"}
+HYPOTHESIS_STATES = {"OPEN", "DROPPED", "CHECKED"}
+BELIEF_REQUIRED_KEYS = ["parent", "source", "question", "hypothesis", "forbids", "rivals", "born_on",
+                        "prior", "anchor", "posterior", "state"]
+CANDIDATE_REQUIRED_KEYS = ["hypothesis", "variant_of", "spec", "pass_rule", "size"]
+STOP_REQUIRED_KEYS = ["rule", "open_count", "dropped_count", "frozen_count", "val_pass_count", "minutes", "detail"]
+STOP_RULES = ("S1", "S2", "S3")
+CELL_KINDS = {"search", "confirm", "val"}
 BRANCHES = {"supported", "refuted", "inconclusive"}
 
-LOW_BELOW = 0.05
-HIGH_ABOVE = 0.85
-WEIGHT_CAP = 10.0
 MIN_CONFIRM_FOLDS = 2
-MIN_SUPPORTED_FOLDS = 2   # for HIGH-CONFIRM
+MIN_SUPPORTED_FOLDS = 2   # a frozen candidate is CONFIRM-SHOWN with this many supported folds and none refuted
+DRY_STREAK = 8            # S2: this many search cells in a row with no new candidate frozen
+S1_MIN_CELLS, S1_MIN_MINUTES = 20, 90     # S1 ("nothing open") may not fire before either floor
+S3_CELLS, S3_MINUTES = 60, 180            # S3 hard cap
+MIN_SEARCH_BEFORE_DROP = 3                # search cells a hypothesis needs before it may be DROPPED
+
+# Belief updating: posterior odds = prior odds x every weight_applied. A search cell looked at data the run may already
+# have searched, so one search cell moves the odds at most 3x; a confirm or VAL check of a frozen spec at most 10x.
+WEIGHT_CAP = {"search": 3.0, "confirm": 10.0, "val": 10.0}
 POSTERIOR_TOLERANCE = 0.01  # absolute, on the probability scale (BELIEFS.md rounds to 2-3 places)
 
 # Files every completed session must have, independent of how many hypotheses or cells it ran.
@@ -104,9 +105,26 @@ class Cell:
     hypothesis: str
     slice: str
     kind: str
+    candidate: str | None = None
+    spec_sha256: str | None = None
+    method: str | None = None    # optional `method: M<n>` header (METHOD_SPEC.md id)
+    controls: str | None = None  # search cells: the rival this look controls for (`none` if it controls none)
+    conditional: str | None = None   # search cells: the regime / conditional split this look uses (`none` if none)
+    rule_mtime: float = 0.0
     branch: str | None = None
     weight: float | None = None
-    method: str | None = None   # v3.2: optional `method: M<n>` header (METHOD_SPEC.md id)
+    suggests: str | None = None
+    variants: int = 1
+    folds: dict = field(default_factory=dict)   # confirm cells: {fold: branch}
+
+
+@dataclass
+class Candidate:
+    fid: str
+    path: str
+    fields: dict
+    sha256: str
+    mtime: float
 
 
 # ------------------------------------------------------------------ file helpers
@@ -127,7 +145,7 @@ def _parse_kv_file(text: str, keys: list[str]) -> dict:
     """First `key: value` line for each wanted key, anywhere in the file."""
     out = {}
     for line in text.splitlines():
-        m = re.match(r"^([a-z_]+):\s*(.*)$", line.strip())
+        m = re.match(r"^([a-z_0-9]+):\s*(.*)$", line.strip())
         if m and m.group(1) in keys and m.group(1) not in out:
             out[m.group(1)] = m.group(2).strip()
     return out
@@ -139,6 +157,15 @@ def _odds(p: float) -> float:
 
 def _prob(odds: float) -> float:
     return odds / (1.0 + odds)
+
+
+def _given(v: str | None) -> bool:
+    return bool(v) and v.strip().lower() not in ("none", "-", "no")
+
+
+def sha256_of(path: str) -> str:
+    with open(path, "rb") as fh:
+        return hashlib.sha256(fh.read()).hexdigest()
 
 
 # ------------------------------------------------------------------ individual checks
@@ -206,38 +233,22 @@ def check_splits(run_dir: str, report: GateReport) -> list[str]:
 
 
 def _parse_belief_blocks(text: str) -> list[dict]:
-    """Split BELIEFS.md on '## H<n>' headings; return one dict per block with
-    lowercase keys mapped to their value string (first line only for 'evidence',
-    since that key introduces a sub-list rather than a scalar)."""
+    """Split BELIEFS.md on '## H<n>' headings; one dict per block, lowercase keys -> first value."""
     blocks = re.split(r"(?m)^##\s*(H\d+)\b", text)
-    # re.split with a capturing group interleaves: [preamble, id, body, id, body, ...]
     out = []
     for i in range(1, len(blocks), 2):
         hid, body = blocks[i], blocks[i + 1]
         entry = {"_id": hid, "_raw": body}
         for line in body.splitlines():
             m = re.match(r"^([a-z_]+):\s*(.*)$", line.strip())
-            if m:
-                key, val = m.group(1), m.group(2).strip()
-                if key not in entry:  # first occurrence only (evidence: has no scalar value)
-                    entry[key] = val
+            if m and m.group(1) not in entry:
+                entry[m.group(1)] = m.group(2).strip()
         out.append(entry)
     return out
 
 
 def _born_slice(entry: dict) -> str:
     return entry.get("born_on", "").split()[0] if entry.get("born_on") else ""
-
-
-def _seen_slices(entry: dict) -> set:
-    raw = entry.get("seen_on", "none")
-    if raw.lower() == "none":
-        return set()
-    return {s.strip() for s in raw.split(",") if s.strip()}
-
-
-def _is_no_story(entry: dict) -> bool:
-    return entry.get("no_story", "").lower() == "yes" or entry.get("forbids", "").lower().startswith("none")
 
 
 def check_beliefs_format(run_dir: str, folds: list[str], report: GateReport) -> list[dict]:
@@ -253,10 +264,7 @@ def check_beliefs_format(run_dir: str, folds: list[str], report: GateReport) -> 
     for e in entries:
         missing = [k for k in BELIEF_REQUIRED_KEYS if not e.get(k)]
         if missing:
-            report.add(
-                "beliefs_missing_fields",
-                f"{e['_id']}: missing or empty field(s) {missing}",
-            )
+            report.add("beliefs_missing_fields", f"{e['_id']}: missing or empty field(s) {missing}")
             continue
         ok = True
         if e["forbids"].lower().startswith("none") and "no-story" not in e["forbids"].lower():
@@ -273,50 +281,64 @@ def check_beliefs_format(run_dir: str, folds: list[str], report: GateReport) -> 
                 e[numeric_key] = v
             except ValueError:
                 ok = False
-                report.add(
-                    "beliefs_bad_number",
-                    f"{e['_id']}: {numeric_key}='{e[numeric_key]}' is not a probability strictly between 0 and 1",
-                )
-        if e["state"] not in REQUIRED_STATES:
+                report.add("beliefs_bad_number",
+                           f"{e['_id']}: {numeric_key}='{e[numeric_key]}' is not a probability strictly between 0 and 1")
+        if e["state"] not in HYPOTHESIS_STATES:
             ok = False
             report.add(
                 "beliefs_bad_state",
-                f"{e['_id']}: state='{e['state']}' is not one of {sorted(REQUIRED_STATES)}",
+                f"{e['_id']}: state='{e['state']}' is not one of {sorted(HYPOTHESIS_STATES)}",
             )
         if e["parent"].lower() != "none" and not re.match(r"^H\d+$", e["parent"]):
-            report.add(
-                "beliefs_bad_parent",
-                f"{e['_id']}: parent='{e['parent']}' is neither 'none' nor an H<n> id",
-            )
+            report.add("beliefs_bad_parent", f"{e['_id']}: parent='{e['parent']}' is neither 'none' nor an H<n> id")
         if folds and _born_slice(e) not in valid_born:
             report.add(
                 "beliefs_bad_born_on",
-                f"{e['_id']}: born_on='{e['born_on']}' must start with SOURCE, EXPLORE or a declared fold {folds}",
-            )
-        bad_seen = _seen_slices(e) - ({"EXPLORE"} | set(folds))
-        if folds and bad_seen:
-            report.add(
-                "beliefs_bad_seen_on",
-                f"{e['_id']}: seen_on names {sorted(bad_seen)}, which are not EXPLORE or a declared fold",
+                f"{e['_id']}: born_on='{e['born_on']}' must start with SOURCE, EXPLORE or a declared fold {folds} "
+                f"(never VAL: nothing is born on VAL)",
             )
         if ok:
             valid.append(e)
     ids = {e["_id"] for e in entries}
     for e in entries:
         if e.get("parent", "none").lower() != "none" and e["parent"] not in ids:
-            report.add(
-                "beliefs_dangling_parent",
-                f"{e['_id']}: parent '{e['parent']}' does not match any entry in this file",
-            )
+            report.add("beliefs_dangling_parent", f"{e['_id']}: parent '{e['parent']}' does not match any entry in this file")
     return valid
 
 
-def check_cells(run_dir: str, report: GateReport) -> list[Cell]:
-    """Rule-before-result ordering, plus the hypothesis/slice/kind header of every rule file and the
-    branch/weight_applied header of every result file. Returns the parsed cells, sorted by number."""
+def check_candidates(run_dir: str, beliefs: list[dict], report: GateReport) -> dict:
+    """candidates/F<n>.md: the frozen spec of every candidate that goes to CONFIRM and VAL."""
+    ids = {e["_id"] for e in beliefs}
+    out = {}
+    for p in sorted(glob.glob(_path(run_dir, "candidates", "F*.md"))):
+        m = re.search(r"(F\d+)\.md$", p)
+        if not m:
+            continue
+        fid = m.group(1)
+        with open(p, encoding="utf-8") as fh:
+            kv = _parse_kv_file(fh.read(), CANDIDATE_REQUIRED_KEYS)
+        missing = [k for k in CANDIDATE_REQUIRED_KEYS if not kv.get(k)]
+        if missing:
+            report.add("candidate_missing_fields", f"candidates/{fid}.md: missing or empty field(s) {missing}")
+        if kv.get("hypothesis") and kv["hypothesis"] not in ids:
+            report.add("candidate_unknown_hypothesis", f"candidates/{fid}.md: hypothesis '{kv['hypothesis']}' is not in BELIEFS.md")
+        out[fid] = Candidate(fid, p, kv, sha256_of(p), os.path.getmtime(p))
+    for c in out.values():
+        v = c.fields.get("variant_of", "none")
+        if v.lower() != "none" and v not in out:
+            report.add("candidate_bad_variant_of", f"candidates/{c.fid}.md: variant_of '{v}' is not a candidate in this run")
+    return out
+
+
+def _parse_folds(raw: str) -> dict:
+    return {k.strip(): v.strip() for k, v in re.findall(r"(C\d+)\s*=\s*([a-z]+)", raw or "")}
+
+
+def check_cells(run_dir: str, folds: list[str], report: GateReport) -> list[Cell]:
+    """Rule-before-result ordering and the headers of every rule and result file. Returns parsed cells, by number."""
     rule_files = sorted(glob.glob(_path(run_dir, "cells", "cell_*_rule.md")))
     if not rule_files:
-        report.add("no_cells", "no cells/cell_*_rule.md found - PHASE 2 produced no test cells")
+        report.add("no_cells", "no cells/cell_*_rule.md found - PHASE 2 produced no cells")
         return []
     cells = []
     for rule_path in rule_files:
@@ -325,262 +347,287 @@ def check_cells(run_dir: str, report: GateReport) -> list[Cell]:
             continue
         nn = m.group(1)
         result_path = _path(run_dir, "cells", f"cell_{nn}_result.md")
-        announce_path = _path(run_dir, "cells", f"cell_{nn}_announce.md")
-        if not os.path.exists(announce_path):
+        if not os.path.exists(_path(run_dir, "cells", f"cell_{nn}_announce.md")):
             report.add("cell_missing_announce", f"cell_{nn}: no cell_{nn}_announce.md")
 
         with open(rule_path, encoding="utf-8") as fh:
-            head = _parse_kv_file(fh.read(), ["hypothesis", "slice", "kind", "method"])
+            head = _parse_kv_file(fh.read(), ["hypothesis", "slice", "kind", "candidate", "spec_sha256", "method",
+                                              "controls", "conditional"])
         missing = [k for k in ("hypothesis", "slice", "kind") if not head.get(k)]
         if missing:
             report.add(
                 "cell_rule_no_header",
-                f"cell_{nn}: rule.md lacks header line(s) {missing} (hypothesis: H<n> / slice: <name> / kind: <test|redirect|val>)",
+                f"cell_{nn}: rule.md lacks header line(s) {missing} (hypothesis / slice / kind: <search|confirm|val>)",
             )
             continue
         if head["kind"] not in CELL_KINDS:
             report.add("cell_bad_kind", f"cell_{nn}: kind='{head['kind']}' is not one of {sorted(CELL_KINDS)}")
             continue
-        cell = Cell(int(nn), head["hypothesis"], head["slice"], head["kind"], method=head.get("method") or None)
+        cell = Cell(int(nn), head["hypothesis"], head["slice"], head["kind"],
+                    candidate=head.get("candidate") or None, spec_sha256=head.get("spec_sha256") or None,
+                    method=head.get("method") or None, controls=head.get("controls") or None,
+                    conditional=head.get("conditional") or None, rule_mtime=os.path.getmtime(rule_path))
 
         if not os.path.exists(result_path):
             report.add("cell_missing_result", f"cell_{nn}: no cell_{nn}_result.md")
             cells.append(cell)
             continue
-        if os.path.getmtime(result_path) < os.path.getmtime(rule_path):
+        if os.path.getmtime(result_path) < cell.rule_mtime:
             report.add(
                 "cell_result_before_rule",
                 f"cell_{nn}: result.md is older than rule.md - the rule was not written first, "
                 f"or the rule file was edited after the result existed",
             )
         with open(result_path, encoding="utf-8") as fh:
-            res = _parse_kv_file(fh.read(), ["branch", "weight_applied"])
-        if res.get("branch") not in BRANCHES:
-            report.add(
-                "cell_result_no_branch",
-                f"cell_{nn}: result.md has no valid 'branch:' line (one of {sorted(BRANCHES)})",
-            )
-        else:
-            cell.branch = res["branch"]
+            res = _parse_kv_file(fh.read(), ["branch", "variants", "folds", "weight_applied", "suggests"])
         try:
             cell.weight = float(res.get("weight_applied", ""))
         except ValueError:
             report.add("cell_result_no_weight", f"cell_{nn}: result.md has no numeric 'weight_applied:' line")
+        if cell.kind == "search":
+            try:
+                cell.variants = int(res.get("variants", ""))
+                if cell.variants < 1:
+                    raise ValueError
+            except ValueError:
+                report.add("cell_result_no_variants",
+                           f"cell_{nn}: a search result needs `variants: <n >= 1>` (every spec it evaluated counts in K)")
+            cell.suggests = res.get("suggests") or None
+            if not cell.suggests:
+                report.add("cell_result_no_suggests",
+                           f"cell_{nn}: a search result needs a `suggests:` line - each lead -> H<n>, or "
+                           f"`not pursued: <reason>`, or `none`")
+        elif cell.kind == "confirm":
+            cell.folds = _parse_folds(res.get("folds", ""))
+            bad = {f: b for f, b in cell.folds.items() if b not in BRANCHES}
+            if set(cell.folds) != set(folds) or bad:
+                report.add("cell_result_bad_folds",
+                           f"cell_{nn}: a confirm result needs `folds: C1=<branch>, ...` naming every declared fold "
+                           f"{folds} with a branch in {sorted(BRANCHES)}")
+        else:
+            if res.get("branch") not in BRANCHES:
+                report.add("cell_result_no_branch",
+                           f"cell_{nn}: a val result needs a `branch:` line (one of {sorted(BRANCHES)})")
+            else:
+                cell.branch = res["branch"]
         cells.append(cell)
     return sorted(cells, key=lambda c: c.nn)
 
 
-def _hypothesis_record(hid: str, cells: list[Cell]) -> dict:
-    """Which slices a hypothesis's test cells opened, and its fold / VAL outcomes."""
-    tests = [c for c in cells if c.hypothesis == hid and c.kind == "test"]
-    vals = [c for c in cells if c.hypothesis == hid and c.kind == "val"]
-    fold_tests = [c for c in tests if c.slice.startswith("C")]
-    return {
-        "opened": [c.slice for c in tests],
-        "supported_folds": sum(1 for c in fold_tests if c.branch == "supported"),
-        "refuted_folds": sum(1 for c in fold_tests if c.branch == "refuted"),
-        "val_supported": any(c.branch == "supported" for c in vals),
-        "has_val": bool(vals),
-    }
+def confirm_shown(cell: Cell) -> bool:
+    branches = list(cell.folds.values())
+    return branches.count("supported") >= MIN_SUPPORTED_FOLDS and branches.count("refuted") == 0
 
 
-def _admissible(entry: dict, opened: list[str], folds: list[str]) -> list[str]:
-    closed = {_born_slice(entry)} | _seen_slices(entry) | set(opened)
-    return [s for s in ["EXPLORE"] + folds if s not in closed]
-
-
-def check_slice_rules(beliefs: list[dict], cells: list[Cell], folds: list[str], report: GateReport) -> None:
-    """RUNBOOK_v3.md HOLDOUTS slice rules 1-3, the redirect rule, the NO-STORY block and the VAL rules."""
+def check_flow(run_dir: str, beliefs: list[dict], cands: dict, cells: list[Cell], folds: list[str],
+               report: GateReport) -> dict:
+    """Search stays on TRAIN; CONFIRM and VAL check frozen specs; VAL only after CONFIRM; every VAL pass goes to the user.
+    Returns {candidate id: status}, status in FROZEN, CONFIRM-FAIL, CONFIRM-SHOWN, VAL-PASS, VAL-FAIL."""
     by_id = {e["_id"]: e for e in beliefs}
-    last_non_val = max((c.nn for c in cells if c.kind != "val"), default=-1)
-    opened: dict[str, list[str]] = {hid: [] for hid in by_id}
-    fold_branches: dict[str, list[str]] = {hid: [] for hid in by_id}
-    val_seen: set = set()
+    train = {"EXPLORE", "TRAIN", "CONFIRM"} | set(folds)
+    confirmed: dict = {}     # fid -> confirm cell
+    valed: dict = {}         # fid -> val cell
 
     for c in cells:
         tag = f"cell_{c.nn:02d} ({c.hypothesis}, {c.slice}, {c.kind})"
-        e = by_id.get(c.hypothesis)
-        if e is None:
+        if c.hypothesis not in by_id:
             report.add("cell_unknown_hypothesis", f"{tag}: {c.hypothesis} is not an entry in BELIEFS.md")
             continue
-        if c.slice not in {"EXPLORE", "VAL"} | set(folds):
-            report.add("cell_unknown_slice", f"{tag}: slice is not declared in SPLITS.md")
+        if c.kind == "search":
+            sl = {s.strip() for s in c.slice.split(",")}
+            if "VAL" in sl:
+                report.add("search_on_val", f"{tag}: searching is TRAIN-only; VAL may only be opened by a kind: val cell")
+            elif not sl <= train:
+                report.add("cell_unknown_slice", f"{tag}: slice must be EXPLORE, a declared fold, CONFIRM or TRAIN")
+            if c.candidate:
+                report.add("search_names_candidate", f"{tag}: a search cell does not check a candidate; drop `candidate:`")
             continue
-        closed = {_born_slice(e)} | _seen_slices(e)
 
-        if c.kind == "test":
-            if c.slice == "VAL":
-                report.add("cell_val_as_test", f"{tag}: VAL may only be opened by a kind: val cell")
-                continue
-            if c.slice in closed:
-                report.add(
-                    "slice_birth_or_seen",
-                    f"{tag}: {c.hypothesis} was born on or has already seen {c.slice} (born_on / seen_on)",
-                )
-            if c.slice in opened[c.hypothesis]:
-                report.add("slice_opened_twice", f"{tag}: {c.hypothesis} already opened {c.slice}")
-            if c.slice.startswith("C"):
-                expected = next((f for f in folds if f not in closed and f not in opened[c.hypothesis]), None)
-                if expected is not None and c.slice != expected:
-                    report.add(
-                        "slice_fold_skipped",
-                        f"{tag}: {c.hypothesis}'s next admissible fold was {expected} (folds open in order)",
-                    )
-                if _is_no_story(e) and e["forbids"].lower().startswith("none"):
-                    report.add(
-                        "slice_no_story_on_fold",
-                        f"{tag}: {c.hypothesis} is NO-STORY with no forbidding prediction; it may not open a CONFIRM fold",
-                    )
-                if c.branch:
-                    fold_branches[c.hypothesis].append(c.branch)
-            opened[c.hypothesis].append(c.slice)
+        cand = cands.get(c.candidate or "")
+        if cand is None:
+            report.add("check_no_candidate",
+                       f"{tag}: a {c.kind} cell must name a frozen spec, `candidate: F<n>` with candidates/F<n>.md")
+            continue
+        if cand.fields.get("hypothesis") != c.hypothesis:
+            report.add("check_wrong_hypothesis", f"{tag}: {cand.fid} belongs to {cand.fields.get('hypothesis')}")
+        if cand.mtime > c.rule_mtime:
+            report.add("check_spec_not_frozen",
+                       f"{tag}: candidates/{cand.fid}.md is newer than this cell's rule - the spec was written or edited "
+                       f"after the check was set up")
 
-        elif c.kind == "redirect":
-            if c.slice != "EXPLORE" and c.slice not in opened[c.hypothesis]:
-                report.add(
-                    "redirect_unopened_slice",
-                    f"{tag}: a redirect may look at EXPLORE or a slice {c.hypothesis} already opened, not {c.slice}",
-                )
-            if c.weight is not None and abs(c.weight - 1.0) > 1e-9:
-                report.add("redirect_weight", f"{tag}: a redirect cell's weight_applied must be 1, not {c.weight}")
-
-        elif c.kind == "val":
+        if c.kind == "confirm":
+            if c.slice != "CONFIRM":
+                report.add("confirm_wrong_slice", f"{tag}: a confirm cell runs the frozen spec on every fold: slice: CONFIRM")
+            if cand.fid in confirmed:
+                report.add("confirm_twice",
+                           f"{tag}: {cand.fid} already has a confirm cell; a changed spec is a new candidate (variant_of)")
+            confirmed.setdefault(cand.fid, c)
+        else:  # val
             if c.slice != "VAL":
                 report.add("val_wrong_slice", f"{tag}: a kind: val cell must have slice: VAL")
-            if c.nn < last_non_val:
-                report.add("val_before_tests", f"{tag}: VAL cells must come after every test and redirect cell")
-            if c.hypothesis in val_seen:
-                report.add("val_opened_twice", f"{tag}: {c.hypothesis} already had a VAL cell")
-            val_seen.add(c.hypothesis)
-            sup = fold_branches[c.hypothesis].count("supported")
-            ref = fold_branches[c.hypothesis].count("refuted")
-            if sup < MIN_SUPPORTED_FOLDS or ref > 0:
-                report.add(
-                    "val_not_high_confirm",
-                    f"{tag}: VAL is only for HIGH-CONFIRM; {c.hypothesis} had {sup} supported and {ref} refuted folds",
-                )
+            prior_confirm = confirmed.get(cand.fid)
+            if prior_confirm is None or not confirm_shown(prior_confirm):
+                report.add("val_not_confirm_shown",
+                           f"{tag}: VAL is only for a candidate CONFIRM-SHOWN by an earlier confirm cell "
+                           f"(>= {MIN_SUPPORTED_FOLDS} supported folds, none refuted)")
+            if c.spec_sha256 != cand.sha256:
+                report.add("val_spec_mismatch",
+                           f"{tag}: spec_sha256 {c.spec_sha256} is not the sha256 of candidates/{cand.fid}.md ({cand.sha256}) "
+                           f"- the spec changed after its VAL check, or the header is missing")
+            if cand.fid in valed:
+                report.add("val_twice",
+                           f"{tag}: {cand.fid} was already checked on VAL; a changed spec is a new candidate (variant_of)")
+            valed.setdefault(cand.fid, c)
 
+    status = {}
+    for fid in cands:
+        if fid in valed:
+            status[fid] = "VAL-PASS" if valed[fid].branch == "supported" else "VAL-FAIL"
+        elif fid in confirmed:
+            status[fid] = "CONFIRM-SHOWN" if confirm_shown(confirmed[fid]) else "CONFIRM-FAIL"
+        else:
+            status[fid] = "FROZEN"
+    for fid, st in status.items():
+        if st == "FROZEN":
+            report.add("confirm_owed", f"{fid} was frozen but never run on the CONFIRM folds")
+        if st == "CONFIRM-SHOWN":
+            report.add("val_owed", f"{fid} is CONFIRM-SHOWN at the end of the session but was not checked on VAL")
 
-def check_posteriors_and_states(beliefs: list[dict], cells: list[Cell], report: GateReport) -> None:
     for e in beliefs:
-        hid = e["_id"]
-        mine = [c for c in cells if c.hypothesis == hid]
-        odds = _odds(e["prior"])
-        chain_ok = True
+        mine = [f for f, cd in cands.items() if cd.fields.get("hypothesis") == e["_id"]]
+        if e["state"] == "CHECKED" and not any(status[f] in ("VAL-PASS", "VAL-FAIL") for f in mine):
+            report.add("state_mismatch", f"{e['_id']}: CHECKED needs at least one of its candidates checked on VAL")
+
+    passes = [f for f, st in status.items() if st == "VAL-PASS"]
+    text = _read(run_dir, "TEST_REQUESTS.md") or ""
+    blocks = re.split(r"(?m)^##\s*(F\d+)\b", text)
+    listed = {blocks[i]: _parse_kv_file(blocks[i + 1], ["spec_sha256"]) for i in range(1, len(blocks), 2)}
+    for f in passes:
+        if f not in listed:
+            report.add("test_request_missing", f"{f} passed VAL but TEST_REQUESTS.md has no `## {f}` block for the user")
+        elif listed[f].get("spec_sha256") != cands[f].sha256:
+            report.add("test_request_bad_sha", f"TEST_REQUESTS.md {f}: spec_sha256 does not match candidates/{f}.md")
+    return status
+
+
+def check_posteriors(beliefs: list[dict], cells: list[Cell], report: GateReport) -> None:
+    """Every posterior = prior x the weight_applied of every cell on that hypothesis, each within its kind's cap."""
+    for e in beliefs:
+        mine = [c for c in cells if c.hypothesis == e["_id"]]
+        odds, chain_ok = _odds(e["prior"]), True
         for c in mine:
             if c.weight is None:
                 chain_ok = False
                 continue
-            if not (1.0 / WEIGHT_CAP - 1e-9 <= c.weight <= WEIGHT_CAP + 1e-9):
-                report.add(
-                    "weight_over_cap",
-                    f"cell_{c.nn:02d}: weight_applied {c.weight} is outside the 10x cap [0.1, 10] (guard b)",
-                )
+            cap = WEIGHT_CAP[c.kind]
+            if not (1.0 / cap - 1e-9 <= c.weight <= cap + 1e-9):
+                report.add("weight_over_cap",
+                           f"cell_{c.nn:02d}: weight_applied {c.weight} is outside the {c.kind} cap [{1 / cap:.3g}, {cap:g}]")
             odds *= c.weight
         expected = _prob(odds)
         if chain_ok and abs(expected - e["posterior"]) > POSTERIOR_TOLERANCE:
-            report.add(
-                "posterior_mismatch",
-                f"{hid}: prior {e['prior']} x weights {[c.weight for c in mine]} gives {expected:.3f}, "
-                f"BELIEFS.md says {e['posterior']}",
-            )
+            report.add("posterior_mismatch",
+                       f"{e['_id']}: prior {e['prior']} x weights {[c.weight for c in mine]} gives {expected:.3f}, "
+                       f"BELIEFS.md says {e['posterior']}")
 
-        rec = _hypothesis_record(hid, cells)
-        post, state = e["posterior"], e["state"]
-        if post < LOW_BELOW:
-            band = "LOW"
-        elif post <= HIGH_ABOVE:
-            band = "OPEN"
-        else:
-            band = "HIGH"
-        if band != "HIGH" and state != band:
-            report.add("state_mismatch", f"{hid}: posterior {post} means state {band}, BELIEFS.md says {state}")
+
+def check_effort(run_dir: str, beliefs: list[dict], cells: list[Cell], report: GateReport) -> None:
+    """No lazy drops, and every lead a search cell names is a real hypothesis."""
+    by_id = {e["_id"] for e in beliefs}
+    decisions = _read(run_dir, "DECISIONS.md") or ""
+    for e in beliefs:
+        if e["state"] != "DROPPED":
             continue
-        if band == "HIGH":
-            if not state.startswith("HIGH"):
-                report.add("state_mismatch", f"{hid}: posterior {post} means a HIGH state, BELIEFS.md says {state}")
-                continue
-            confirmed = rec["supported_folds"] >= MIN_SUPPORTED_FOLDS and rec["refuted_folds"] == 0
-            if state == "HIGH-VAL" and not (confirmed and rec["val_supported"]):
-                report.add("state_mismatch", f"{hid}: HIGH-VAL needs HIGH-CONFIRM and a supported VAL cell")
-            elif state == "HIGH-CONFIRM" and not confirmed:
-                report.add(
-                    "state_mismatch",
-                    f"{hid}: HIGH-CONFIRM needs >= {MIN_SUPPORTED_FOLDS} supported and 0 refuted folds; "
-                    f"has {rec['supported_folds']} supported, {rec['refuted_folds']} refuted",
-                )
-            elif state == "HIGH-CONFIRM" and rec["val_supported"]:
-                report.add("state_mismatch", f"{hid}: passed VAL, so its state is HIGH-VAL, not HIGH-CONFIRM")
-            elif state == "HIGH" and confirmed:
-                report.add("state_mismatch", f"{hid}: meets HIGH-CONFIRM (folds) but is recorded as HIGH")
-        if state == "HIGH-CONFIRM" and not rec["has_val"]:
-            report.add("val_owed", f"{hid}: HIGH-CONFIRM at the end of the session but no VAL cell was run")
+        hid = e["_id"]
+        searches = [c for c in cells if c.hypothesis == hid and c.kind == "search"]
+        if len(searches) < MIN_SEARCH_BEFORE_DROP:
+            report.add("drop_too_early",
+                       f"{hid}: DROPPED after {len(searches)} search cell(s); at least {MIN_SEARCH_BEFORE_DROP} are required")
+        if not any(_given(c.controls) for c in searches):
+            report.add("drop_no_rival_controlled", f"{hid}: DROPPED without a search cell that controls a rival (`controls:`)")
+        if not any(_given(c.conditional) for c in searches):
+            report.add("drop_no_conditional",
+                       f"{hid}: DROPPED without a search cell that tries a regime or conditional split (`conditional:`)")
+        if e["posterior"] >= e["prior"]:
+            report.add("drop_posterior_not_down",
+                       f"{hid}: DROPPED but its posterior {e['posterior']} is not below its prior {e['prior']}")
+        if not re.search(rf"(?m)^\s*-?\s*drop {hid}:\s*\S", decisions):
+            report.add("drop_no_reason", f"{hid}: DROPPED with no `drop {hid}: <reason>` line in DECISIONS.md")
+    for c in cells:
+        for ref in re.findall(r"H\d+", c.suggests or ""):
+            if ref not in by_id:
+                report.add("suggests_unknown_hypothesis",
+                           f"cell_{c.nn:02d}: suggests {ref}, which is not an entry in BELIEFS.md")
 
 
-def check_stop_reason(run_dir: str, beliefs: list[dict], cells: list[Cell], folds: list[str],
-                      report: GateReport) -> None:
+def k_counts(cells: list[Cell]) -> tuple[int, int]:
+    """K_train = every spec evaluated on TRAIN (search variants + confirm runs); K_val = every VAL check."""
+    k_train = sum(c.variants for c in cells if c.kind == "search") + sum(1 for c in cells if c.kind == "confirm")
+    k_val = sum(1 for c in cells if c.kind == "val")
+    return k_train, k_val
+
+
+def check_stop_reason(run_dir: str, beliefs: list[dict], cands: dict, status: dict, cells: list[Cell],
+                      report: GateReport) -> str | None:
     text = _read(run_dir, "STOP_REASON.md")
     if text is None:
-        return
+        return None
     fields = _parse_kv_file(text, STOP_REQUIRED_KEYS)
     missing = [k for k in STOP_REQUIRED_KEYS if k not in fields or not fields[k]]
     if missing:
         report.add("stop_reason_missing_fields", f"STOP_REASON.md missing field(s) {missing}")
-        return
+        return None
     rule = fields["rule"]
     if rule not in STOP_RULES:
         report.add("stop_reason_bad_rule", f"STOP_REASON.md rule='{rule}' not one of {STOP_RULES}")
-        return
-
+        return None
     if not beliefs:
-        return  # already reported
+        return rule
 
-    actual_open = sum(1 for e in beliefs if e.get("state") == "OPEN")
-    actual_low = sum(1 for e in beliefs if e.get("state") == "LOW")
-    actual_high = sum(1 for e in beliefs if e.get("state", "").startswith("HIGH"))
-
-    for key, actual in (("open_count", actual_open), ("low_count", actual_low),
-                        ("high_count", actual_high)):
+    actual = {
+        "open_count": sum(1 for e in beliefs if e["state"] == "OPEN"),
+        "dropped_count": sum(1 for e in beliefs if e["state"] == "DROPPED"),
+        "frozen_count": len(cands),
+        "val_pass_count": sum(1 for s in status.values() if s == "VAL-PASS"),
+    }
+    for key, n in actual.items():
         try:
             claimed = int(fields[key])
         except ValueError:
             report.add("stop_reason_bad_number", f"STOP_REASON.md {key}='{fields[key]}' not an int")
             continue
-        if claimed != actual:
-            report.add(
-                "stop_reason_count_mismatch",
-                f"STOP_REASON.md claims {key}={claimed}, BELIEFS.md actually has {actual}",
-            )
+        if claimed != n:
+            report.add("stop_reason_count_mismatch", f"STOP_REASON.md claims {key}={claimed}, the run actually has {n}")
 
-    unresolved = [e["_id"] for e in beliefs if e["state"] not in RESOLVED_STATES]
-    pickable = [
-        e["_id"] for e in beliefs
-        if e["state"] in ("OPEN", "HIGH")
-        and _admissible(e, _hypothesis_record(e["_id"], cells)["opened"], folds)
-    ]
-    if rule == "S1" and unresolved:
-        report.add(
-            "stop_reason_s1_violated",
-            f"STOP_REASON.md claims S1 (all LOW or HIGH-VAL) but {unresolved} are not",
-        )
-    if rule == "S4" and pickable:
-        report.add(
-            "stop_reason_s4_violated",
-            f"STOP_REASON.md claims S4 (slices exhausted) but {pickable} still have an admissible slice",
-        )
-    if rule == "S2" and not pickable:
-        report.add(
-            "stop_reason_s2_no_tests",
-            "STOP_REASON.md claims S2 but no hypothesis has an admissible slice left - that is S4 (or S1)",
-        )
-    if rule in ("S2", "S3", "S4") and not unresolved:
-        report.add(
-            "stop_reason_suspicious",
-            f"STOP_REASON.md claims {rule} but every hypothesis is LOW or HIGH-VAL - this should have been S1",
-        )
+    try:
+        minutes = float(fields["minutes"])
+    except ValueError:
+        report.add("stop_reason_bad_number", f"STOP_REASON.md minutes='{fields['minutes']}' is not a number")
+        minutes = 0.0
+    if rule == "S1" and actual["open_count"]:
+        report.add("stop_reason_s1_violated", f"STOP_REASON.md claims S1 (no OPEN hypothesis) but {actual['open_count']} are OPEN")
+    if rule == "S1" and len(cells) < S1_MIN_CELLS and minutes < S1_MIN_MINUTES:
+        report.add("stop_reason_s1_too_early",
+                   f"STOP_REASON.md claims S1 after {len(cells)} cells and {minutes:g} minutes; S1 needs at least "
+                   f"{S1_MIN_CELLS} cells or {S1_MIN_MINUTES} minutes - spawn new hypotheses instead of stopping")
+    if rule == "S3" and len(cells) < S3_CELLS and minutes < S3_MINUTES:
+        report.add("stop_reason_s3_under_cap",
+                   f"STOP_REASON.md claims S3 (cap) after {len(cells)} cells and {minutes:g} minutes; the cap is "
+                   f"{S3_CELLS} cells or {S3_MINUTES} minutes")
+    if rule in ("S2", "S3") and not actual["open_count"]:
+        report.add("stop_reason_suspicious", f"STOP_REASON.md claims {rule} but no hypothesis is OPEN - that is S1")
+    if rule == "S2":
+        tail = cells[-DRY_STREAK:]
+        if len(tail) < DRY_STREAK or any(c.kind != "search" for c in tail):
+            report.add("stop_reason_s2_violated",
+                       f"STOP_REASON.md claims S2 but the last {DRY_STREAK} cells are not all search cells")
+        elif any(cd.mtime >= tail[0].rule_mtime for cd in cands.values()):
+            report.add("stop_reason_s2_violated",
+                       f"STOP_REASON.md claims S2 but a candidate was frozen during the last {DRY_STREAK} search cells")
+    return rule
 
 
-# ------------------------------------------------------------------ v3.2: mode, installs, methods, memory
+# ------------------------------------------------------------------ mode, installs, methods, memory
 
 MODES_ALL = ("A", "B", "C", "D", "E")
 SOURCE_METHOD_MODES = ("B", "C")   # a paper is the source: its method must be specified and matched
@@ -593,8 +640,8 @@ BASE_IMPORTS = {
 }
 MEMORY_BUDGET_LINES = {"LEDGER.md": 250, "FINDINGS.md": 300, "DATA_FACTS.md": 150}
 FINDINGS_MAX_LINES_PER_ENTRY = 3
-FINDINGS_MIN_MOVE = 0.05   # a hypothesis that moved this far off its prior (and is not LOW) gets a FINDINGS entry
-LEDGER_COLS = ["date", "run", "target", "mode", "stop", "cells", "K", "dataset", "K_cum", "methods_score"]
+LEDGER_COLS = ["date", "run", "target", "mode", "stop", "cells", "K_train", "K_val", "dataset",
+               "K_cum_train", "K_cum_val", "methods_score"]
 
 
 def check_mode(run_dir: str, report: GateReport) -> str | None:
@@ -676,7 +723,7 @@ def check_installs(run_dir: str, report: GateReport) -> None:
 def check_method_spec(run_dir: str, mode: str | None, beliefs: list[dict], cells: list[Cell],
                       report: GateReport) -> None:
     """Modes B/C: METHOD_SPEC.md specifies the source's method(s) as `## M<n>` blocks, every deviation has a
-    reason, and every SOURCE-born hypothesis has a test cell citing a defined method (`method: M<n>`)."""
+    reason, and every SOURCE-born hypothesis has a cell citing a defined method (`method: M<n>`)."""
     cited = {c.method for c in cells if c.method}
     text = _read(run_dir, "METHOD_SPEC.md")
     if mode not in SOURCE_METHOD_MODES and text is None:
@@ -709,9 +756,9 @@ def check_method_spec(run_dir: str, mode: str | None, beliefs: list[dict], cells
         for e in beliefs:
             if _born_slice(e) != "SOURCE":
                 continue
-            if not any(c.hypothesis == e["_id"] and c.kind in ("test", "val") and c.method in specs for c in cells):
+            if not any(c.hypothesis == e["_id"] and c.method in specs for c in cells):
                 report.add("method_not_used",
-                           f"{e['_id']} is SOURCE-born in mode {mode} but no test cell cites a METHOD_SPEC.md method (`method: M<n>`)")
+                           f"{e['_id']} is SOURCE-born in mode {mode} but no cell cites a METHOD_SPEC.md method (`method: M<n>`)")
 
 
 def memory_dir_for(run_dir: str) -> str:
@@ -719,8 +766,13 @@ def memory_dir_for(run_dir: str) -> str:
     return os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(run_dir))), "MEMORY")
 
 
-def check_memory(run_dir: str, memory_dir: str, mode: str | None, beliefs: list[dict], cells: list[Cell],
-                 report: GateReport) -> None:
+def _ledger_int(v: str) -> int | None:
+    v = (v or "").strip()
+    return int(v) if v.isdigit() else None
+
+
+def check_memory(run_dir: str, memory_dir: str, mode: str | None, beliefs: list[dict], status: dict,
+                 cells: list[Cell], report: GateReport) -> None:
     """The run appended its memory, and memory stays inside its budgets (RUNBOOK_v3.md MEMORY)."""
     run = os.path.basename(os.path.normpath(run_dir))
     texts = {}
@@ -748,20 +800,22 @@ def check_memory(run_dir: str, memory_dir: str, mode: str | None, beliefs: list[
                            f"MEMORY/LEDGER.md has {len(mine)} row(s) for run '{run}'; exactly 1 is required")
             else:
                 r = rows[mine[0]]
-                scored = sum(1 for c in cells if c.kind in ("test", "val"))
-                try:
-                    k, kcum = int(r["K"]), int(r["K_cum"])
-                    if k < scored:
-                        report.add("ledger_k_too_small", f"LEDGER K={k} is below this run's {scored} scored slice openings")
+                need = dict(zip(("K_train", "K_val"), k_counts(cells)))
+                for col in ("K_train", "K_val"):
+                    k, kcum = _ledger_int(r.get(col)), _ledger_int(r.get(f"K_cum_{col[2:]}"))
+                    if k is None or kcum is None:
+                        report.add("ledger_bad_number", f"LEDGER row for '{run}': {col} and K_cum_{col[2:]} must be integers")
+                        continue
+                    if k < need[col]:
+                        report.add("ledger_k_too_small", f"LEDGER {col}={k} is below this run's {need[col]}")
                     prev = 0
                     for row in rows[: mine[0]]:
-                        if row.get("dataset") == r.get("dataset") and row.get("K_cum", "").isdigit():
-                            prev = int(row["K_cum"])
+                        if row.get("dataset") == r.get("dataset") and _ledger_int(row.get(f"K_cum_{col[2:]}")) is not None:
+                            prev = _ledger_int(row[f"K_cum_{col[2:]}"])
                     if kcum != prev + k:
                         report.add("ledger_bad_kcum",
-                                   f"LEDGER K_cum={kcum} for dataset '{r.get('dataset')}' should be {prev} (previous) + {k} = {prev + k}")
-                except ValueError:
-                    report.add("ledger_bad_number", f"LEDGER row for '{run}': K and K_cum must be integers")
+                                   f"LEDGER K_cum_{col[2:]}={kcum} for dataset '{r.get('dataset')}' should be "
+                                   f"{prev} (previous) + {k} = {prev + k}")
                 if mode and r.get("mode", "").strip().upper()[:1] != mode:
                     report.add("ledger_mode_mismatch", f"LEDGER mode '{r.get('mode')}' differs from DECISIONS.md mode '{mode}'")
                 if r.get("methods_score", "").strip().lower() not in ("pending", "0", "1", "2", "3"):
@@ -770,30 +824,29 @@ def check_memory(run_dir: str, memory_dir: str, mode: str | None, beliefs: list[
     if "FINDINGS.md" in texts:
         ft = texts["FINDINGS.md"]
         entries = {}
-        heads = list(re.finditer(r"(?m)^###\s+(\S+)\s+(H\d+)\b.*$", ft))
+        heads = list(re.finditer(r"(?m)^###\s+(\S+)\s+([HF]\d+)\b.*$", ft))
         for i, m in enumerate(heads):
             end = heads[i + 1].start() if i + 1 < len(heads) else len(ft)
-            body = ft[m.end():end]
-            body = re.split(r"(?m)^#", body)[0]   # stop at the next heading of any level
+            body = re.split(r"(?m)^#", ft[m.end():end])[0]   # stop at the next heading of any level
             entries[(m.group(1), m.group(2))] = [l for l in body.splitlines() if l.strip()]
-        for e in beliefs:
-            moved = abs(float(e["posterior"]) - float(e["prior"])) >= FINDINGS_MIN_MOVE
-            if e["state"] == "LOW" or not moved:
+        for fid, st in status.items():
+            if st not in ("CONFIRM-SHOWN", "VAL-PASS", "VAL-FAIL"):
                 continue
-            body = entries.get((run, e["_id"]))
+            body = entries.get((run, fid))
             if body is None:
-                report.add("findings_missing",
-                           f"MEMORY/FINDINGS.md has no `### {run} {e['_id']}` entry ({e['state']}, {e['prior']} -> {e['posterior']})")
+                report.add("findings_missing", f"MEMORY/FINDINGS.md has no `### {run} {fid}` entry ({st})")
             elif len(body) > FINDINGS_MAX_LINES_PER_ENTRY:
                 report.add("findings_too_long",
-                           f"MEMORY/FINDINGS.md `{run} {e['_id']}` has {len(body)} lines, max {FINDINGS_MAX_LINES_PER_ENTRY}")
-        lows = {e["_id"] for e in beliefs if e["state"] == "LOW"}
-        if lows:
-            m = re.search(rf"(?m)^-?\s*{re.escape(run)}\s+LOW:\s*(.*)$", ft)
-            named = set(re.findall(r"H\d+", m.group(1))) if m else set()
-            if lows - named:
-                report.add("findings_low_line_missing",
-                           f"MEMORY/FINDINGS.md needs a `{run} LOW: ...` line naming {sorted(lows - named)}")
+                           f"MEMORY/FINDINGS.md `{run} {fid}` has {len(body)} lines, max {FINDINGS_MAX_LINES_PER_ENTRY}")
+        for label, ids in (("DROPPED", {e["_id"] for e in beliefs if e["state"] == "DROPPED"}),
+                           ("CONFIRM-FAIL", {f for f, st in status.items() if st == "CONFIRM-FAIL"})):
+            if not ids:
+                continue
+            m = re.search(rf"(?m)^-?\s*{re.escape(run)}\s+{label}:\s*(.*)$", ft)
+            named = set(re.findall(r"[HF]\d+", m.group(1))) if m else set()
+            if ids - named:
+                report.add("findings_line_missing", f"MEMORY/FINDINGS.md needs a `{run} {label}: ...` line naming {sorted(ids - named)}")
+
 
 # ------------------------------------------------------------------ entry point
 
@@ -806,14 +859,16 @@ def check_run(run_dir: str, memory_dir: str | None = None) -> GateReport:
     check_data_profile_sections(run_dir, report)
     folds = check_splits(run_dir, report)
     beliefs = check_beliefs_format(run_dir, folds, report)
-    cells = check_cells(run_dir, report)
-    check_slice_rules(beliefs, cells, folds, report)
-    check_posteriors_and_states(beliefs, cells, report)
-    check_stop_reason(run_dir, beliefs, cells, folds, report)
+    cands = check_candidates(run_dir, beliefs, report)
+    cells = check_cells(run_dir, folds, report)
+    status = check_flow(run_dir, beliefs, cands, cells, folds, report)
+    check_posteriors(beliefs, cells, report)
+    check_effort(run_dir, beliefs, cells, report)
+    check_stop_reason(run_dir, beliefs, cands, status, cells, report)
     mode = check_mode(run_dir, report)
     check_installs(run_dir, report)
     check_method_spec(run_dir, mode, beliefs, cells, report)
-    check_memory(run_dir, memory_dir or memory_dir_for(run_dir), mode, beliefs, cells, report)
+    check_memory(run_dir, memory_dir or memory_dir_for(run_dir), mode, beliefs, status, cells, report)
     return report
 
 
@@ -827,12 +882,11 @@ def main(argv: list) -> int:
     if len(args) != 1 or (memory_dir is None and "--memory" in argv):
         print("usage: python gate.py <run_dir> [--memory <MEMORY dir>]")
         return 2
-    argv = [argv[0], args[0]]
-    report = check_run(argv[1], memory_dir)
+    report = check_run(args[0], memory_dir)
     if report.ok:
-        print(f"PASS: {argv[1]}")
+        print(f"PASS: {args[0]}")
         return 0
-    print(f"FAIL: {argv[1]}")
+    print(f"FAIL: {args[0]}")
     for i, issue in enumerate(report.issues, 1):
         print(f"  {i}. [{issue.code}] {issue.message}")
     return 1

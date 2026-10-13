@@ -1,7 +1,10 @@
-# FINDINGS — hypotheses that moved >= 0.05 off their prior (RUNBOOK_v3.md "MEMORY"). Budget 300 lines.
+# FINDINGS — candidates that reached CONFIRM-SHOWN or a VAL result (RUNBOOK_v3.md "MEMORY"). Budget 300 lines.
 
-Format: `### <run> H<n> — title`, then at most 3 lines: claim / state + posterior + slice evidence / what it needs next.
-LOW hypotheses: one `- <run> LOW:` line per run. Informs priors and the already-tested list; NEVER evidence in a new run.
+Format (v3.3): `### <run> F<n> — title`, then at most 3 lines: frozen spec / CONFIRM folds + VAL result / what it needs next.
+One-line lists per run: `- <run> CONFIRM-FAIL: F..` and `- <run> DROPPED: H..`. Informs picks and the already-tried list;
+NEVER evidence in a new run.
+Entries before v3.3 are in the old format (H<n>, prior/posterior, LOW lines). Where they say "needs a fresh slice", that
+no longer applies to TRAIN: under v3.3 those leads may be searched again on the same TRAIN, then frozen and checked.
 
 - 2026-09-28_btc-perp-various-free LOW: none
 - 2026-09-30_crypto-panel-1h LOW: H4 (high-volume winners continue: opposite sign on CONFIRM)

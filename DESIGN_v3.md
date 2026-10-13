@@ -3,6 +3,43 @@
 Status: DRAFT for the user to read. RUNBOOK.md (v2) is untouched and stays the live one until v3 is approved and built.
 Written 2026-09-28.
 
+## Amendment v3.3 (2026-10-13): a signal engine — search TRAIN freely, check frozen specs on VAL, TEST to the user
+
+Supersedes earlier text where they differ, including v3.1's slice rules; RUNBOOK_v3.md carries the operational rules. The
+Bayesian ledger stays: prior -> posterior updating per hypothesis is essential and is never removed.
+
+**Why.** The engine's job, as the user framed it, is to find candidate signals; rigor against overfitting (multiple-testing
+haircuts, stress tests) is the user's later step. v3.0-v3.2 instead acted as referee: each hypothesis could open each slice
+once, so after one look at CONFIRM a promising idea had nowhere left to go (the BTC run's H5 reversal sat at 0.71 with every
+slice spent; "needs a fresh slice" was the most common line in FINDINGS). And once looks are free, nothing would stop a lazy
+run from dropping every hypothesis after one look, so effort needs its own floor.
+
+**Change.**
+- Searching only on TRAIN (EXPLORE + CONFIRM folds), unlimited: re-look, tweak, re-slice, condition. No birth-slice,
+  `seen_on`, once-per-slice or fold-order rules; no redirect cells.
+- Beliefs still update after EVERY cell: prior x weight_applied chain, recomputed by gate.py. A search cell moves odds at
+  most 3x (it may re-read searched data), a confirm or VAL check of a frozen spec at most 10x. The next cell is picked by
+  largest expected belief shift.
+- Effort floors (gate-enforced): no DROP before 3 search cells incl. a rival controlled and a conditional split, a fallen
+  posterior and a stated reason; every search result answers its leads (`suggests:`); S1 not before 20 cells or 90 minutes.
+- A candidate is frozen in `candidates\F<n>.md` (spec, pass rule with a size condition, size and its cost line), then run
+  unchanged on every CONFIRM fold (CONFIRM-SHOWN = >= 2 folds supported, none refuted), then checked on VAL. VAL may check
+  any number of candidates, each once; the VAL cell records the spec's sha256 so a spec edited after its check fails the gate.
+- After a VAL failure the run may search TRAIN again; a new spec is a new candidate with `variant_of`, so families are visible.
+- TEST is never opened by the routine. VAL passes go to `TEST_REQUESTS.md` for the user.
+- K is counted, never capped: `K_train` (every spec a search evaluated, via `variants:`, plus confirm runs) and `K_val`, each
+  with a cumulative per-dataset total in MEMORY/LEDGER.md, for the user's deflation.
+- Hypothesis states OPEN / DROPPED / CHECKED; candidate states FROZEN / CONFIRM-FAIL / CONFIRM-SHOWN / VAL-PASS / VAL-FAIL
+  (derived by gate.py from the cells). Stop rules: S1 nothing open, S2 dry (8 search cells with no candidate), S3 cap
+  (60 cells or 3 hours).
+
+**Risks and guards.**
+- Mining TRAIN freely produces many candidates that are noise; more will fail VAL. Accepted: that is the price of a scout,
+  and K tells the user how hard each result was searched for.
+- VAL can still steer the search indirectly (fail, re-search, re-check). Guard: not blocked, but every round is a logged
+  variant with K_val, and the judge fails a re-spec that could only have come from reading VAL.
+- Search code could read VAL rows. Guard: the load guard and ACCESS_LOG, and the judge reads every search cell's code.
+
 ## Amendment v3.2 (2026-10-05): installs earned and rewarded, method fidelity, memory across runs
 
 Supersedes earlier text where they differ; RUNBOOK_v3.md sections "INSTALLS AND METHODS" and "MEMORY" carry the rules.
