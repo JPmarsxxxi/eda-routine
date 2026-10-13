@@ -1,4 +1,5 @@
-# EDA RUNBOOK v3.3: a signal engine — search TRAIN freely, check on VAL, hand TEST to the user — unattended
+# EDA RUNBOOK v3.4: a signal engine with three jobs (data, features, methods) — search TRAIN freely, check on VAL,
+# hand TEST to the user — unattended
 
 THE METHOD FOR EVERY INDIVIDUAL CLAIM IS STILL C:\Users\User\backtest_engine\backtest_engine2\skills\14c-eda.md. This runbook does
 NOT replace it. v3 wraps 14c in a session that chases many hypotheses from a chosen source mode, searches for signals on
@@ -20,10 +21,37 @@ then run unchanged. VAL may check as many frozen candidates as the run produces.
 passes are handed to the user. Rigor beyond this line (multiple-testing haircuts, stress tests) is the user's later step;
 this engine's job is to find candidates and count honestly how many looks it took (K).
 
+## JOBS (v3.4) — one routine, three jobs; this file is the core every job follows
+
+Alpha comes from three places: the data you can get, what you do with it, and the tools you process it with. The routine
+has one job for each. `TARGET.md`'s `JOB:` line picks it; read the matching file right after this one and follow both:
+
+| `JOB:` | file | what it does | its product |
+|---|---|---|---|
+| `data` | `JOB_DATA.md` | finds outside data with predictive power for the target; no cleaning | `DATA_PROPOSALS.md` (ranked), `SOURCES.md` |
+| `features` | `JOB_FEATURES.md` | engineers as many predictive, non-redundant features as possible from data we have | the `features\` library |
+| `methods` | `JOB_METHODS.md` | applies toolbox methods to our data, or finds new algorithms and tries them | the `toolbox\` registry |
+
+Everything in this file applies to every job: holdouts, Phase 0, hypotheses with priors updated after every cell, the
+search / freeze / confirm / VAL line, effort floors, stop rules, TEST_REQUESTS.md, memory, gate.py and the judge. A job
+file only adds what is particular to it. Where they differ, the job file wins on its own ground (what a hypothesis is,
+what a cell must report, its product); this file wins on everything else, and HOLDOUTS always wins.
+
+- **The target** for every job is the forward return of the TARGET.md `DATA` bundle's main instrument(s), at horizons the
+  run declares in SPLITS.md (every horizon tried counts in K), unless TARGET.md names another. Priors are beliefs about
+  hypotheses; they never change the target.
+- **Source modes A-E** (MODE SELECTION below) still say where ideas come from, inside any job: a papers-mode methods run
+  takes its algorithm from a paper; a data-only features run builds from Phase 0 observations. `INBOX.md` §S (data
+  pointers) is always read by the data job, whatever the mode.
+- `DECISIONS.md` carries one machine-readable line `job: <data|features|methods>` next to `mode:` (gate.py reads both).
+- Every job reads `features\REGISTRY.md` and `toolbox\REGISTRY.md` at the start: the library is the baseline a new result
+  must add to, and the toolbox lists methods already validated.
+
 READ IN FULL FIRST, in this order:
   MEMORY\LEDGER.md, MEMORY\FINDINGS.md, MEMORY\DATA_FACTS.md (see MEMORY below); TARGET.md; DESIGN_v3.md; C:\Users\User\backtest_engine\backtest_engine2\PROTOCOL.md; ...\skills\00-overview.md;
   ...\skills\12-alpha-overview.md; ...\skills\14c-eda.md; C:\Users\User\finding-alphas\data-hygiene.md;
-  C:\Users\User\eda-routine\HOLDOUT_RULES.md; INBOX.md; MODES.md (create if absent, see MODE SELECTION below).
+  C:\Users\User\eda-routine\HOLDOUT_RULES.md; INBOX.md; MODES.md (create if absent, see MODE SELECTION below);
+  the JOB_<job>.md file that TARGET.md's `JOB:` line names; features\REGISTRY.md; toolbox\REGISTRY.md.
 
 UNATTENDED SUBSTITUTIONS (unchanged from v2). Nobody confirms a cell live. Instead:
   - "Announce the cell and wait for confirmation" -> write the full 14c Step-3 announcement to cells\cell_NN_announce.md BEFORE
@@ -104,7 +132,7 @@ line must earn its place: if a future run would not do something differently bec
 
 | file | one entry | budget | used for |
 |---|---|---|---|
-| `LEDGER.md` | one table row per run: `date, run, target, mode, stop, cells, K_train, K_val, dataset, K_cum_train, K_cum_val, methods_score` | 250 lines | step log; cumulative looks per dataset, for the user's multiple-testing haircut; methods score over time |
+| `LEDGER.md` | one table row per run: `date, run, job, target, mode, stop, cells, K_train, K_val, dataset, K_cum_train, K_cum_val, methods_score` | 250 lines | step log; cumulative looks per dataset, for the user's multiple-testing haircut; methods score over time |
 | `FINDINGS.md` | `### <run> F<n> — <title>` + at most 3 lines: the frozen spec in one line; CONFIRM folds + VAL result; what it needs next | 300 lines | leads to pick up, the already-tried list |
 | `DATA_FACTS.md` | `- <dataset>: <fact> (<run>)`, one line | 150 lines | what a dataset IS, so no run re-discovers it |
 
@@ -419,7 +447,10 @@ detail: <one line — S2: the 8 cells; S3: cells used / minutes elapsed>
    table (F, hypothesis, variant_of, per-fold CONFIRM branches and effects — the decay shape — VAL branch and number); the cost
    line for everything that reached VAL; K_train, K_val, K_cum_train, K_cum_val; one part-0 `1b finding` block per candidate
    that reached VAL; leads (NO-STORY entries, observations not chased).
-3. **`INBOX_PROPOSALS.md`** — any new idea/paper/group worth a future session goes here, never written into `INBOX.md`
+3. **The job's product** (JOB_<job>.md): `DATA_PROPOSALS.md` + `SOURCES.md` (data); rows in `features\REGISTRY.md` +
+   code (features); rows in `toolbox\REGISTRY.md` + validation files (methods). gate.py checks that every frozen candidate
+   is tied to its row or block.
+3b. **`INBOX_PROPOSALS.md`** — any new idea/paper/group worth a future session goes here, never written into `INBOX.md`
    directly (the human merges it).
 4. **Memory** (MEMORY section above): append this run's one `LEDGER.md` row (`methods_score: pending`), its `FINDINGS.md`
    entries and one-line lists, and any new `DATA_FACTS.md` lines; consolidate first if a file would pass its budget.
@@ -444,7 +475,7 @@ detail: <one line — S2: the 8 cells; S3: cells used / minutes elapsed>
   confirm result covers every fold; VAL only for a CONFIRM-SHOWN candidate, once per spec, with a `spec_sha256` matching the
   file as it is now; no confirm or VAL check owed at the end; CHECKED hypotheses really have a VAL result; every VAL-PASS in
   `TEST_REQUESTS.md` with the matching sha; `STOP_REASON.md`'s counts and S1-S3 claim match the run; a `mode:` line in
-  DECISIONS.md; every non-base import has a pinned, validated INSTALLS.md row from PyPI/conda-forge; in modes B/C a complete
+  DECISIONS.md, and a `job:` line with the job's product in place (JOB files); every non-base import has a pinned, validated INSTALLS.md row from PyPI/conda-forge; in modes B/C a complete
   METHOD_SPEC.md and a cell citing it for every SOURCE-born hypothesis; exactly one LEDGER row with K_train and K_val at
   least what the cells show and both K_cum carried per dataset; FINDINGS entries and one-line lists; every MEMORY file inside
   its budget. If it prints `FAIL`, fix what it names — do not edit a result or candidate file to make an mtime or sha check

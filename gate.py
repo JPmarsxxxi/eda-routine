@@ -644,8 +644,18 @@ BASE_IMPORTS = {
 }
 MEMORY_BUDGET_LINES = {"LEDGER.md": 250, "FINDINGS.md": 300, "DATA_FACTS.md": 150}
 FINDINGS_MAX_LINES_PER_ENTRY = 3
-LEDGER_COLS = ["date", "run", "target", "mode", "stop", "cells", "K_train", "K_val", "dataset",
+LEDGER_COLS = ["date", "run", "job", "target", "mode", "stop", "cells", "K_train", "K_val", "dataset",
                "K_cum_train", "K_cum_val", "methods_score"]
+
+# v3.4: one routine, three jobs (RUNBOOK_v3.md "JOBS"; one JOB_<name>.md per job). Each job's frozen candidates carry
+# extra keys, and each job writes its own product.
+JOBS = ("data", "features", "methods")
+JOB_CANDIDATE_KEYS = {"data": ["dataset"], "features": ["feature"], "methods": ["method_id", "baseline"]}
+SOURCES_COLS = ["dataset", "url", "license", "fetched", "knowable_at"]
+PROPOSAL_KEYS = ["source", "access", "knowable_at", "target", "incremental", "val", "label"]
+FEATURE_COLS = ["id", "family", "definition", "inputs", "dataset", "code", "folds", "val", "max_corr", "incremental",
+                "status", "run"]
+TOOLBOX_COLS = ["id", "what", "package", "version", "source", "validation", "result", "beats", "runs"]
 
 
 def check_mode(run_dir: str, report: GateReport) -> str | None:
@@ -765,6 +775,120 @@ def check_method_spec(run_dir: str, mode: str | None, beliefs: list[dict], cells
                            f"{e['_id']} is SOURCE-born in mode {mode} but no cell cites a METHOD_SPEC.md method (`method: M<n>`)")
 
 
+def check_job(run_dir: str, report: GateReport) -> str | None:
+    """DECISIONS.md must carry one machine-readable `job: <data|features|methods>` line."""
+    text = _read(run_dir, "DECISIONS.md")
+    if text is None:
+        return None
+    job = _parse_kv_file(text, ["job"]).get("job", "").strip().lower()
+    if job not in JOBS:
+        report.add("decisions_no_job", f"DECISIONS.md has no `job: <{'|'.join(JOBS)}>` line")
+        return None
+    return job
+
+
+def repo_dir_for(run_dir: str) -> str:
+    """<eda-routine>, two levels above runs/<run>: where features/ and toolbox/ live."""
+    return os.path.dirname(os.path.dirname(os.path.abspath(run_dir)))
+
+
+def _val_end(run_dir: str) -> str | None:
+    m = re.search(r"(?m)^\s*-\s*VAL\s+\d{4}-\d{2}-\d{2}\s+(\d{4}-\d{2}-\d{2})\s*$", _read(run_dir, "SPLITS.md") or "")
+    return m.group(1) if m else None
+
+
+def _rows_by(text: str | None, key: str) -> dict:
+    return {r.get(key, "").strip(): r for r in _parse_table(text or "")}
+
+
+def check_job_outputs(run_dir: str, job: str | None, cands: dict, status: dict, report: GateReport) -> None:
+    """Each job's own product: data -> SOURCES.md, cut copies, DATA_PROPOSALS.md; features -> features/REGISTRY.md;
+    methods -> toolbox/REGISTRY.md. Every frozen candidate is tied to the thing its job produces."""
+    if job is None:
+        return
+    run = os.path.basename(os.path.normpath(run_dir))
+    repo = repo_dir_for(run_dir)
+    for c in cands.values():
+        with open(c.path, encoding="utf-8") as fh:
+            c.fields.update(_parse_kv_file(fh.read(), JOB_CANDIDATE_KEYS[job]))
+        missing = [k for k in JOB_CANDIDATE_KEYS[job] if not _given(c.fields.get(k))]
+        if missing:
+            report.add("candidate_missing_job_fields", f"candidates/{c.fid}.md: job {job} needs field(s) {missing}")
+
+    if job == "data":
+        sources = _rows_by(_read(run_dir, "SOURCES.md"), "dataset")
+        sources.pop("", None)
+        if not sources:
+            report.add("data_no_sources", f"job data: SOURCES.md needs a table with columns {SOURCES_COLS}")
+        val_end = _val_end(run_dir)
+        for name, r in sources.items():
+            for col in SOURCES_COLS:
+                if not _given(r.get(col)):
+                    report.add("data_source_incomplete", f"SOURCES.md `{name}`: '{col}' is empty")
+            cut = _read(run_dir, "fetched", name, "CUT.json")
+            if cut is None:
+                report.add("data_no_cut", f"fetched/{name}/CUT.json missing - every fetched dataset is cut before use")
+                continue
+            m = re.search(r'"max_time"\s*:\s*"(\d{4}-\d{2}-\d{2})', cut)
+            if not m:
+                report.add("data_no_cut", f'fetched/{name}/CUT.json has no "max_time": "YYYY-MM-DD..." entry')
+            elif val_end and m.group(1) >= val_end:
+                report.add("data_cut_past_val", f"fetched/{name}: max_time {m.group(1)} is not before VAL's end {val_end}")
+        for c in cands.values():
+            ds = c.fields.get("dataset", "")
+            if _given(ds) and ds not in sources:
+                report.add("data_candidate_unsourced", f"candidates/{c.fid}.md: dataset '{ds}' has no SOURCES.md row")
+        text = _read(run_dir, "DATA_PROPOSALS.md") or ""
+        blocks = re.split(r"(?m)^##\s+(\S+)", text)
+        props = {blocks[i]: _parse_kv_file(blocks[i + 1], PROPOSAL_KEYS) for i in range(1, len(blocks), 2)}
+        for fid, st in status.items():
+            if st != "VAL-PASS":
+                continue
+            ds = cands[fid].fields.get("dataset", "")
+            if ds not in props:
+                report.add("data_proposal_missing", f"{fid} passed VAL but DATA_PROPOSALS.md has no `## {ds}` block")
+                continue
+            empty = [k for k in PROPOSAL_KEYS if not props[ds].get(k)]
+            if empty:
+                report.add("data_proposal_incomplete", f"DATA_PROPOSALS.md `{ds}`: missing {empty}")
+
+    elif job == "features":
+        rows = _rows_by(_read(repo, "features", "REGISTRY.md"), "id")
+        for c in cands.values():
+            fid = c.fields.get("feature", "")
+            r = rows.get(fid)
+            if r is None:
+                report.add("feature_unregistered", f"candidates/{c.fid}.md: feature '{fid}' has no features/REGISTRY.md row")
+                continue
+            for col in ("definition", "code", "folds", "max_corr", "incremental", "status"):
+                if not _given(r.get(col)):
+                    report.add("feature_row_incomplete", f"features/REGISTRY.md `{fid}`: '{col}' is empty")
+            if run not in r.get("run", ""):
+                report.add("feature_row_wrong_run", f"features/REGISTRY.md `{fid}`: 'run' does not name {run}")
+            code = r.get("code", "").strip()
+            if code and not os.path.exists(os.path.join(repo, code)):
+                report.add("feature_no_code", f"features/REGISTRY.md `{fid}`: code file '{code}' does not exist")
+            want = {"VAL-PASS": "VAL-PASS", "VAL-FAIL": "VAL-FAIL"}.get(status.get(c.fid, ""))
+            if want and r.get("status", "").strip() != want:
+                report.add("feature_status_mismatch", f"features/REGISTRY.md `{fid}`: status should be {want}")
+
+    elif job == "methods":
+        rows = _rows_by(_read(repo, "toolbox", "REGISTRY.md"), "id")
+        for c in cands.values():
+            mid = c.fields.get("method_id", "")
+            r = rows.get(mid)
+            if r is None:
+                report.add("method_unregistered", f"candidates/{c.fid}.md: method '{mid}' has no toolbox/REGISTRY.md row")
+                continue
+            if r.get("result", "").strip().upper() != "PASS":
+                report.add("method_not_validated", f"toolbox/REGISTRY.md `{mid}`: validation result is not PASS")
+            val = r.get("validation", "").strip()
+            if not val or not os.path.exists(os.path.join(repo, val)):
+                report.add("method_no_validation_file", f"toolbox/REGISTRY.md `{mid}`: validation file '{val}' does not exist")
+            if run not in r.get("runs", ""):
+                report.add("method_row_wrong_run", f"toolbox/REGISTRY.md `{mid}`: 'runs' does not name {run}")
+
+
 def memory_dir_for(run_dir: str) -> str:
     """Default MEMORY dir: <eda-routine>/MEMORY, two levels above runs/<run>."""
     return os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(run_dir))), "MEMORY")
@@ -776,7 +900,7 @@ def _ledger_int(v: str) -> int | None:
 
 
 def check_memory(run_dir: str, memory_dir: str, mode: str | None, beliefs: list[dict], status: dict,
-                 cells: list[Cell], report: GateReport) -> None:
+                 cells: list[Cell], report: GateReport, job: str | None = None) -> None:
     """The run appended its memory, and memory stays inside its budgets (RUNBOOK_v3.md MEMORY)."""
     run = os.path.basename(os.path.normpath(run_dir))
     texts = {}
@@ -820,6 +944,8 @@ def check_memory(run_dir: str, memory_dir: str, mode: str | None, beliefs: list[
                         report.add("ledger_bad_kcum",
                                    f"LEDGER K_cum_{col[2:]}={kcum} for dataset '{r.get('dataset')}' should be "
                                    f"{prev} (previous) + {k} = {prev + k}")
+                if job and r.get("job", "").strip().lower() != job:
+                    report.add("ledger_job_mismatch", f"LEDGER job '{r.get('job')}' differs from DECISIONS.md job '{job}'")
                 if mode and r.get("mode", "").strip().upper()[:1] != mode:
                     report.add("ledger_mode_mismatch", f"LEDGER mode '{r.get('mode')}' differs from DECISIONS.md mode '{mode}'")
                 if r.get("methods_score", "").strip().lower() not in ("pending", "0", "1", "2", "3"):
@@ -870,9 +996,11 @@ def check_run(run_dir: str, memory_dir: str | None = None) -> GateReport:
     check_effort(run_dir, beliefs, cells, report)
     check_stop_reason(run_dir, beliefs, cands, status, cells, report)
     mode = check_mode(run_dir, report)
+    job = check_job(run_dir, report)
+    check_job_outputs(run_dir, job, cands, status, report)
     check_installs(run_dir, report)
     check_method_spec(run_dir, mode, beliefs, cells, report)
-    check_memory(run_dir, memory_dir or memory_dir_for(run_dir), mode, beliefs, status, cells, report)
+    check_memory(run_dir, memory_dir or memory_dir_for(run_dir), mode, beliefs, status, cells, report, job)
     return report
 
 

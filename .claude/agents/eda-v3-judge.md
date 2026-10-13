@@ -68,6 +68,25 @@ say so as a FAIL and cite which check, but your checklist starts past that floor
    actually partialled out, a split the mechanism says should matter), not a token label on an
    unchanged look? FAIL if token.
 
+## Checklist J — the job did its own job (v3.4; DECISIONS.md `job:` and the JOB_<job>.md file)
+
+Read the JOB file the run followed.
+
+1. **data** — For every fetched dataset: is `knowable_at` in SOURCES.md real (publication lag, release time, revisions —
+   first-release/vintage data used where history is revised)? Do the cells align values to `knowable_at`, not to the
+   period they describe? A macro series aligned to its reference date is look-ahead: FAIL. Was any source behind a
+   login, paywall or key the user did not supply? FAIL. Does every effect reported come after partialling out the
+   bundle's baseline features (market, momentum/reversal, volatility)? FAIL if raw only.
+2. **features** — Does every kept feature report max |corr| against the library and the run's other features, and an
+   incremental effect after partialling the most correlated out? Was a near-duplicate (|corr| > 0.7, no incremental
+   effect) added as a new feature instead of merged? Does each `features/<id>.py` compute exactly what the candidate spec
+   says, point-in-time? FAIL on any.
+3. **methods** — Did each method's validation plant a known answer and recover it before real data? Is every result
+   reported as lift over the named `baseline` on the same data? Was any parameter fitted using VAL rows? FAIL on any.
+4. **Breadth.** Did the job actually do its job at scale — many series screened (data), many families and transforms
+   (features), a real comparison of methods (methods) — or did it run a few hypothesis tests in the old style? A run that
+   ignored its JOB file's product is a FAIL.
+
 ## Checklist C — the stop was legitimate
 
 1. **S1 claimed** — is every hypothesis really DROPPED or CHECKED, and does DECISIONS.md give a one-line
@@ -152,7 +171,7 @@ REASON: <EVERY failed check, each with its evidence — checklist letter + numbe
 METHODS_SCORE: <0-3> — <one sentence; for 2 or 3, name the tool/method and the cell>
 ```
 
-**Do not stop at the first failure.** Work through every checklist (A, B, B2, C-G), then report every failed
+**Do not stop at the first failure.** Work through every checklist (A, B, B2, J, C-G), then report every failed
 check in one block.
 
 **Severity is flat.** Checklists A and B are the engine's integrity (a VAL pass the user can't trust, or a

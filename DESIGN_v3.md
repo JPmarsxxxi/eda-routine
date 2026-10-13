@@ -3,6 +3,32 @@
 Status: DRAFT for the user to read. RUNBOOK.md (v2) is untouched and stays the live one until v3 is approved and built.
 Written 2026-09-28.
 
+## Amendment v3.4 (2026-10-13): one routine, three jobs — data, features, methods
+
+**Why.** The user's framing: alpha today comes from (1) the data you can get, (2) what you do with it — the features you
+engineer and how you transform them, (3) the systems and methods that process it. Before v3.4 the routine was a
+hypothesis tester with no memory of its own features, no way to look for new data, and new tools only when one claim
+needed one.
+
+**Change.**
+- `TARGET.md` `JOB:` picks one of three job files layered on the unchanged v3.3 core (RUNBOOK_v3.md): `JOB_DATA.md` (find
+  outside data that predicts the target; no cleaning; product `DATA_PROPOSALS.md`), `JOB_FEATURES.md` (as many predictive,
+  non-redundant features as possible; product the shared `features/` library), `JOB_METHODS.md` (toolbox methods or new
+  algorithms vs a baseline; product the shared `toolbox/` registry).
+- The target is always the forward return of the bundle's main instrument(s) unless TARGET.md names another. Modes A-E
+  stay as where ideas come from, inside any job. One routine, one prompt, one queue.
+- gate.py: a `job:` line; job-specific candidate keys (`dataset` / `feature` / `method_id` + `baseline`); data cuts
+  before VAL's end with SOURCES.md and `knowable_at`; feature rows with orthogonality and code; toolbox rows validated.
+  LEDGER gains a `job` column. The judge gains checklist J.
+
+**Risks and guards.**
+- Outside data brings look-ahead through publication lags and revisions. Guard: `knowable_at` per source, vintage data
+  where history is revised, cut before any measurement, judge J1.
+- A feature factory inflates K fast and floods the library with near-duplicates. Guard: every variant counts in K;
+  orthogonality and incremental effect are required on every row; duplicates are merged.
+- New methods can overfit through their own fitting. Guard: fitted on TRAIN only, written into the frozen spec, lift over
+  a named baseline, planted-answer validation first.
+
 ## Amendment v3.3 (2026-10-13): a signal engine — search TRAIN freely, check frozen specs on VAL, TEST to the user
 
 Supersedes earlier text where they differ, including v3.1's slice rules; RUNBOOK_v3.md carries the operational rules. The

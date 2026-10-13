@@ -6,6 +6,7 @@ explicitly (candidates first, then each cell's rule, then its result) so orderin
 Posteriors are computed from the cells' weights unless a test gives one, so a test only states what it breaks.
 """
 import os
+import re
 import sys
 import tempfile
 import unittest
@@ -42,9 +43,10 @@ state: {state}
 """
 
 
-def candidate(hypothesis, variant_of="none"):
+def candidate(hypothesis, variant_of="none", feature="f001"):
     return f"""hypothesis: {hypothesis}
 variant_of: {variant_of}
+feature: {feature}
 spec: fade the 6h block return, IC on next 6h, 10-coin panel
 construction: point-in-time inputs; trailing 30d z-score; winsorised 1/99; raw and market-neutral; market corr reported
 pass_rule: supported if IC <= -0.02 and z <= -1.645; refuted if IC >= 0; else inconclusive
@@ -102,8 +104,19 @@ def write(path, text, mtime=None):
 
 
 RUN = "2026-01-01_test"
-LEDGER_HEAD = ("| date | run | target | mode | stop | cells | K_train | K_val | dataset | K_cum_train | K_cum_val | methods_score |\n"
-               "|---|---|---|---|---|---|---|---|---|---|---|---|\n")
+LEDGER_HEAD = ("| date | run | job | target | mode | stop | cells | K_train | K_val | dataset | K_cum_train | K_cum_val | methods_score |\n"
+               "|---|---|---|---|---|---|---|---|---|---|---|---|---|\n")
+REGISTRY_HEAD = ("| id | family | definition | inputs | dataset | code | folds | val | max_corr | incremental | status | run |\n"
+                 "|---|---|---|---|---|---|---|---|---|---|---|---|\n")
+TOOLBOX_HEAD = ("| id | what | package | version | source | validation | result | beats | runs |\n"
+                "|---|---|---|---|---|---|---|---|---|\n")
+
+
+def registry(rows):
+    """features/REGISTRY.md with one row per (feature id, status)."""
+    return REGISTRY_HEAD + "".join(
+        f"| {fid} | reversal | fade 6h block | close | ds1 | features/{fid}.py | C1+ C2+ C3= | {st} | 0.31 | +0.012 | {st} | {RUN} |\n"
+        for fid, st in rows)
 
 
 def k_of(cells):
@@ -112,27 +125,29 @@ def k_of(cells):
     return k_train, sum(1 for c in cells.values() if c["kind"] == "val")
 
 
-def ledger_row(cells, mode="E", k=None, k_cum=None, score="pending"):
+def ledger_row(cells, mode="E", k=None, k_cum=None, score="pending", job="features"):
     k = k or k_of(cells)
     k_cum = k_cum or k
-    return (f"| 2026-01-01 | {RUN} | test | {mode} | S3 | {len(cells)} | {k[0]} | {k[1]} | ds1 | "
+    return (f"| 2026-01-01 | {RUN} | {job} | test | {mode} | S3 | {len(cells)} | {k[0]} | {k[1]} | ds1 | "
             f"{k_cum[0]} | {k_cum[1]} | {score} |\n")
 
 
 FINDINGS = f"# FINDINGS\n\n- {RUN} DROPPED: H2\n\n### {RUN} F1 — 6h reversal\nclaim\nVAL-PASS\n\n"
 
 
-def memory_files(cells, mode="E"):
+def memory_files(cells, mode="E", job="features"):
     """Valid MEMORY/ contents for a run: one LEDGER row, a FINDINGS entry for F1, a DROPPED line, a DATA_FACTS file."""
-    return {"LEDGER.md": LEDGER_HEAD + ledger_row(cells, mode), "FINDINGS.md": FINDINGS,
+    return {"LEDGER.md": LEDGER_HEAD + ledger_row(cells, mode, job=job), "FINDINGS.md": FINDINGS,
             "DATA_FACTS.md": "# DATA_FACTS\n- ds1: fact\n"}
 
 
 class GateTest(unittest.TestCase):
     def build(self, beliefs=None, cells=None, cands=None, stop=None, splits=SPLITS, mode="E", memory=None,
-              files=None, test_requests=None, decisions=None):
+              files=None, test_requests=None, decisions=None, job="features", repo_files=None):
         """Synthetic run at <tmp>/runs/<RUN> with its MEMORY at <tmp>/MEMORY (gate's default location).
-        `memory` overrides individual MEMORY files; `files` adds or replaces files in the run folder."""
+        `memory` overrides individual MEMORY files; `files` adds or replaces files in the run folder; `repo_files`
+        adds or replaces files at <tmp> (features/, toolbox/). By default the run is a features job and
+        features/REGISTRY.md has a row per candidate's feature with the status its VAL cell gives."""
         beliefs = beliefs if beliefs is not None else base_beliefs()
         cells = cells if cells is not None else base_cells()
         cands = cands if cands is not None else base_candidates()
@@ -146,8 +161,20 @@ class GateTest(unittest.TestCase):
         if decisions is None:
             decisions = "".join(f"- drop {h}: nothing survived three looks\n" for h, kw in beliefs.items()
                                 if kw["state"] == "DROPPED")
-        write(os.path.join(d, "DECISIONS.md"), f"# DECISIONS\nmode: {mode}\n{decisions}")
-        mem = memory_files(cells, mode)
+        write(os.path.join(d, "DECISIONS.md"), f"# DECISIONS\nmode: {mode}\njob: {job}\n{decisions}")
+        if job == "features":
+            rows = []
+            for fid, text in cands.items():
+                feat = re.search(r"(?m)^feature:\s*(\S+)", text)
+                val = next((c for c in cells.values() if c["kind"] == "val" and c.get("candidate") == fid), None)
+                st = "CONFIRM-SHOWN" if val is None else ("VAL-PASS" if val["branch"] == "supported" else "VAL-FAIL")
+                if feat:
+                    rows.append((feat.group(1), st))
+                    write(os.path.join(tmp.name, "features", f"{feat.group(1)}.py"), "def compute(df):\n    return df\n")
+            write(os.path.join(tmp.name, "features", "REGISTRY.md"), registry(rows))
+        for name, text in (repo_files or {}).items():
+            write(os.path.join(tmp.name, name), text)
+        mem = memory_files(cells, mode, job)
         mem.update(memory or {})
         for name, text in mem.items():
             if text is not None:
@@ -381,7 +408,7 @@ class GateTest(unittest.TestCase):
                         folds="C1=supported, C2=supported, C3=supported")
         cells[10] = dict(h="H1", slice="VAL", kind="val", w=10, candidate="F2", branch="supported")
         cands = base_candidates()
-        cands["F2"] = candidate("H1", variant_of="F1")
+        cands["F2"] = candidate("H1", variant_of="F1", feature="f002")
         memory = self.with_ledger(cells)
         memory["FINDINGS.md"] = FINDINGS + f"### {RUN} F2 — variant\nx\n"
         self.assertPasses(self.build(cells=cells, cands=cands, stop=dict(BASE_STOP, frozen_count=2), memory=memory))
@@ -561,7 +588,7 @@ deviation_reason: paper uses CRSP stocks; we have 10 coins, so the cross-section
 
     def test_ledger_kcum_carries_dataset_history(self):
         cells = base_cells()
-        prior = "| 2025-12-01 | old_run | t | E | S3 | 9 | 100 | 2 | ds1 | 100 | 2 | 2 |\n"
+        prior = "| 2025-12-01 | old_run | features | t | E | S3 | 9 | 100 | 2 | ds1 | 100 | 2 | 2 |\n"
         good = LEDGER_HEAD + prior + ledger_row(cells, k_cum=(155, 3))
         bad = LEDGER_HEAD + prior + ledger_row(cells, k_cum=(155, 1))
         self.assertPasses(self.build(memory={"LEDGER.md": good}))
@@ -579,6 +606,90 @@ deviation_reason: paper uses CRSP stocks; we have 10 coins, so the cross-section
     def test_findings_entry_too_long(self):
         mem = FINDINGS.replace("VAL-PASS\n", "VAL-PASS\nline 3\nline 4\n")
         self.assertFails(self.build(memory={"FINDINGS.md": mem}), "findings_too_long")
+
+    # ---------------------------------------------------------------- v3.4 jobs
+
+    def test_missing_job_line(self):
+        report = self.build()
+        write(os.path.join(report.run_dir, "DECISIONS.md"), "# DECISIONS\nmode: E\n- drop H2: x\n")
+        self.assertFails(gate.check_run(report.run_dir), "decisions_no_job")
+
+    def test_ledger_job_mismatch(self):
+        cells = base_cells()
+        self.assertFails(self.build(memory={"LEDGER.md": LEDGER_HEAD + ledger_row(cells, job="data")}),
+                         "ledger_job_mismatch")
+
+    # features job
+    def test_features_candidate_needs_feature_id(self):
+        self.assertFails(self.build(cands={"F1": candidate("H1").replace("feature: f001\n", "")}),
+                         "candidate_missing_job_fields")
+
+    def test_features_unregistered(self):
+        self.assertFails(self.build(repo_files={"features/REGISTRY.md": REGISTRY_HEAD}), "feature_unregistered")
+
+    def test_features_status_must_follow_val(self):
+        self.assertFails(self.build(repo_files={"features/REGISTRY.md": registry([("f001", "CONFIRM-SHOWN")])}),
+                         "feature_status_mismatch")
+
+    def test_features_row_needs_orthogonality(self):
+        row = registry([("f001", "VAL-PASS")]).replace("| 0.31 | +0.012 |", "| - | - |")
+        self.assertFails(self.build(repo_files={"features/REGISTRY.md": row}), "feature_row_incomplete")
+
+    def test_features_code_must_exist(self):
+        row = registry([("f001", "VAL-PASS")]).replace("features/f001.py", "features/missing.py")
+        self.assertFails(self.build(repo_files={"features/REGISTRY.md": row}), "feature_no_code")
+
+    # data job
+    SOURCES = ("| dataset | url | license | fetched | knowable_at |\n|---|---|---|---|---|\n"
+               "| fred_t10y2y | https://fred.stlouisfed.org/series/T10Y2Y | public domain | 2026-10-13 | close + 1 day |\n")
+    PROPOSAL = ("## fred_t10y2y\nsource: FRED T10Y2Y\naccess: free API, no key\nknowable_at: close + 1 day\n"
+                "target: US500 next-day return\nincremental: +0.01 IC over existing features\nval: cell_07 supported\n"
+                "label: COMBINE-ONLY\n")
+
+    def data_build(self, files=None, cut='{"max_time": "2023-11-30T23:59:00Z"}'):
+        cands = {"F1": candidate("H1").replace("feature: f001", "dataset: fred_t10y2y")}
+        f = {"SOURCES.md": self.SOURCES, "DATA_PROPOSALS.md": self.PROPOSAL, "fetched/fred_t10y2y/CUT.json": cut}
+        f.update(files or {})
+        return self.build(job="data", cands=cands, files=f)
+
+    def test_data_job_passes(self):
+        self.assertPasses(self.data_build())
+
+    def test_data_cut_past_val(self):
+        self.assertFails(self.data_build(cut='{"max_time": "2024-03-01"}'), "data_cut_past_val")
+
+    def test_data_no_cut(self):
+        report = self.data_build()
+        os.remove(os.path.join(report.run_dir, "fetched", "fred_t10y2y", "CUT.json"))
+        self.assertFails(gate.check_run(report.run_dir), "data_no_cut")
+
+    def test_data_proposal_missing(self):
+        self.assertFails(self.data_build(files={"DATA_PROPOSALS.md": "# none\n"}), "data_proposal_missing")
+
+    def test_data_source_needs_knowable_at(self):
+        src = self.SOURCES.replace("| close + 1 day |", "| - |")
+        self.assertFails(self.data_build(files={"SOURCES.md": src}), "data_source_incomplete")
+
+    # methods job
+    def methods_build(self, row="| hmm2 | 2-state Gaussian HMM regimes | hmmlearn | 0.3.2 | pypi | toolbox/hmm2_validation.md | PASS | rolling-vol split | 2026-01-01_test |\n",
+                      cand_extra="method_id: hmm2\nbaseline: trailing-vol median split\n"):
+        cands = {"F1": candidate("H1").replace("feature: f001\n", cand_extra)}
+        return self.build(job="methods", cands=cands,
+                          repo_files={"toolbox/REGISTRY.md": TOOLBOX_HEAD + row,
+                                      "toolbox/hmm2_validation.md": "planted 2-state path recovered, accuracy 0.94\n"})
+
+    def test_methods_job_passes(self):
+        self.assertPasses(self.methods_build())
+
+    def test_methods_needs_baseline(self):
+        self.assertFails(self.methods_build(cand_extra="method_id: hmm2\n"), "candidate_missing_job_fields")
+
+    def test_methods_unregistered(self):
+        self.assertFails(self.methods_build(cand_extra="method_id: tcn\nbaseline: OLS\n"), "method_unregistered")
+
+    def test_methods_not_validated(self):
+        row = "| hmm2 | HMM | hmmlearn | 0.3.2 | pypi | toolbox/hmm2_validation.md | FAIL | - | 2026-01-01_test |\n"
+        self.assertFails(self.methods_build(row=row), "method_not_validated")
 
     def test_memory_over_budget(self):
         facts = "# DATA_FACTS\n" + "".join(f"- ds1: fact {i}\n" for i in range(200))

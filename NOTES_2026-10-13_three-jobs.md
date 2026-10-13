@@ -1,4 +1,4 @@
-# Session notes, 2026-10-13: v3.3 done, next = split into three jobs
+# Session notes, 2026-10-13: v3.3 done, then v3.4 = one routine, three jobs (BUILT)
 
 Hand-off for continuing on cloud. What was decided, what was built, what's open.
 
@@ -73,3 +73,13 @@ is shared by all three.
 - FTMO US500 prep work (clean_ftmo_us500_*.py, prep_ftmo_us500.py, rules/, tools/) is still uncommitted on the local
   machine, not on GitHub. HOLDOUT_RULES.md's US500 split/seal lines were committed with v3.3.
 - TARGET.md still shows `DONE` for the BTC perp run; no US500 target written yet.
+
+## 5. Built: v3.4 (same day)
+
+- `TARGET.md` `JOB: data | features | methods`; files `JOB_DATA.md`, `JOB_FEATURES.md`, `JOB_METHODS.md` on top of the
+  core `RUNBOOK_v3.md` (JOBS section). Shared `features/REGISTRY.md` and `toolbox/REGISTRY.md` (empty, ready).
+- gate.py checks the job line and each job's product; 81 tests pass. LEDGER has a `job` column. Judge checklist J.
+- `INBOX.md` §S = data pointers for the data job. `ROUTINE_PROMPT.md` now points at RUNBOOK_v3.md + the JOB file
+  (the app's saved prompt must be updated by hand).
+- Next: write a READY target (e.g. JOB: features on crypto_panel_validated_2026-10-05, seeding the library with #30 and
+  -#54 from the b2 run, or JOB: data with the user's pointers in INBOX §S) and run it.

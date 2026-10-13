@@ -33,3 +33,11 @@ available. A used item is left in place, not deleted, so the record of what's be
   - https://papers.ssrn.com/sol3/papers.cfm?abstract_id=XXXXXXX
   - https://papers.ssrn.com/sol3/papers.cfm?abstract_id=YYYYYYY
 -->
+
+## S. Data sources and pointers — read by every data job (JOB_DATA.md), whatever the mode; never consumed
+
+<!-- one per line: a site, an API, a dataset, a paper that used an unusual dataset, or a plain hint. Examples:
+- https://fred.stlouisfed.org  (US macro; use ALFRED vintages for first-release values)
+- CFTC Commitments of Traders, weekly positioning by trader type
+- try options-implied measures for US500 (VIX term structure, skew)
+-->
