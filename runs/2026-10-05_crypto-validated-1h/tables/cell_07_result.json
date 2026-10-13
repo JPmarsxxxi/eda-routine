@@ -1,0 +1,28 @@
+{
+ "cell": 7,
+ "hyp": "H2",
+ "slice": "C1",
+ "T_bp": 88.97999999999999,
+ "coins": [
+  "ADAUSD",
+  "BCHUSD",
+  "BNBUSD",
+  "BTCUSD",
+  "DOGEUSD",
+  "DOTUSD",
+  "ETHUSD",
+  "LTCUSD",
+  "SOLUSD",
+  "XRPUSD"
+ ],
+ "branch": "refuted",
+ "first": "2021-07-07",
+ "last": "2021-12-30",
+ "n": 175,
+ "ic": 0.048109935812219395,
+ "ic_t": 0.6327874088720994,
+ "spread_bp": 70.47361261560505,
+ "t": 0.9117226878009613,
+ "n_top": 62,
+ "n_bot": 58
+}

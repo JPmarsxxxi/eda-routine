@@ -1,0 +1,12 @@
+H1 on C1: prior 0.490, power 0.307, expected |shift| = 12.5 pp
+    P(supported)=0.490x0.307+0.510x0.026=0.164, w=6.140 -> post 0.855, |shift| 0.365
+    P(inconclusive)=0.490x0.010+0.510x0.001=0.005, w=1.000 -> post 0.490, |shift| 0.000
+    P(refuted)=0.490x0.683+0.510x0.973=0.831, w=0.729 -> post 0.412, |shift| 0.078
+H2 on C1: prior 0.120, power 0.279, expected |shift| = 4.8 pp
+    P(supported)=0.120x0.279+0.880x0.050=0.078, w=5.572 -> post 0.432, |shift| 0.312
+    P(inconclusive)=0.120x0.000+0.880x0.000=0.000, w=1.000 -> post 0.120, |shift| 0.000
+    P(refuted)=0.120x0.721+0.880x0.950=0.922, w=0.759 -> post 0.094, |shift| 0.026
+H3 on C1: prior 0.060, power 0.227, expected |shift| = 2.0 pp
+    P(supported)=0.060x0.227+0.940x0.052=0.062, w=4.538 -> post 0.225, |shift| 0.165
+    P(inconclusive)=0.060x0.000+0.940x0.000=0.000, w=1.000 -> post 0.060, |shift| 0.000
+    P(refuted)=0.060x0.773+0.940x0.948=0.938, w=0.814 -> post 0.049, |shift| 0.011

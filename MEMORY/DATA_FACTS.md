@@ -8,3 +8,5 @@
 - btcusdt_metrics_5m: OI == 0 on one hour (impossible value); ls_all and ls_top_cnt changes 0.84 correlated; OI value = OI x price. (2026-09-28_btc-perp-various-free)
 - btc_dvol_hourly: starts 2021-04-01; no gaps. (2026-09-28_btc-perp-various-free)
 - BTCUSDT spot 1m (all bundles): bars OPEN-stamped (complete days run 00:00-23:59); from 2023-04 trades/min fall ~8x and zero-return bars rise to 4-12% (VAL regime differs from TRAIN). (2026-09-25_btc-spot-1m-clean)
+- crypto_panel_validated_2026-10-05: response `primary/validated_<COIN>` price switches from the Binance print to the FTMO mid for 7 of 10 coins from C3 (2022-07) on, so a fade in C3 may be the response-series switch, not the signal. (2026-10-06_crypto-101alphas-b2)
+- crypto_panel_validated_2026-10-05: 249 MB, gitignored; on GitHub only inside branch claude/friendly-volta-rq2l22 (force-added there). Local copy under data/. (2026-10-13 merge)

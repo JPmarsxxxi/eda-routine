@@ -1,0 +1,11 @@
+coin,src,roll_half_spread_bp,hourly_acf1,rt_cost_24h_bp
+BTCUSD,['binance_trade'],13.902,-0.027,18.9
+ETHUSD,['binance_trade'],12.758,-0.015,25.4
+BNBUSD,['binance_trade'],22.021,-0.035,46.0
+SOLUSD,['binance_trade'],29.608,-0.018,46.0
+XRPUSD,['binance_trade'],27.457,-0.044,68.6
+DOGEUSD,['binance_trade'],48.306,-0.023,46.0
+ADAUSD,['binance_trade'],36.248,-0.063,46.0
+LTCUSD,['binance_trade'],25.38,-0.046,36.5
+BCHUSD,['binance_trade'],22.858,-0.03,65.5
+DOTUSD,['binance_trade'],36.151,-0.041,46.0

@@ -1,0 +1,2 @@
+pick_21: E|shift| = sum over supported/refuted of P(branch) x |posterior(branch) - current|, P(branch) = p x P(b|IC=0.02) + (1-p) x P(b|IC=0); weights capped [0.1, 10] (D10, tables/power.csv)
+PICK: none

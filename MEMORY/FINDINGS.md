@@ -56,3 +56,31 @@ Needs: fold tests (v3.1).
 ### 2026-09-30_crypto-panel-1h H1 — daily time-series reversal
 OPEN 0.227: CONFIRM refuted (IC -0.047, z -1.38). Child H7 crash-day rebound untested (0.42).
 Needs: H7 on a slice where its statistic was not shown.
+
+- 2026-10-05_crypto-validated-1h LOW: H3 (S&P spillover: wrong sign C1)
+- 2026-10-05_crypto-101alphas LOW: H2 (#42 reversal), H3 (#2), H6 (#2 raw child)
+- 2026-10-06_crypto-101alphas-b2 LOW: H3 (#38), H4 (#53), H5 (#54 opposite sign)
+
+### 2026-10-05_crypto-validated-1h H1 — XS perp premium -> 72h relative underperformance
+OPEN 0.321: sign negative on C1/C2/C3 (-23/-118/-19 bp) but EXPLORE's -170 bp shrank ~85%; low power per fold (0.2-0.3).
+Needs: under v3.3, search TRAIN for the regime where it holds (C2-like), then freeze and check.
+
+### 2026-10-05_crypto-validated-1h H2 — Fear & Greed level -> next-day panel return
+OPEN 0.059: spread fell monotonically C1 +70 -> C2 +41 -> C3 -23 bp; likely a bull-regime impostor.
+Needs: nothing unless conditioned on something other than trend.
+
+### 2026-10-05_crypto-101alphas H1 — Kakushadze #101 (close-open)/(high-low), daily, 10 coins
+HIGH-CONFIRM 0.852 but VAL refuted (+4.7 bp/day, IC -0.03); C1 +57, C2 +33 bp/day, C3 never opened; regime story (2020-22).
+Needs: turnover ~2/day -> break-even ~45 bp/day; dead standalone, possible combine-only input.
+
+### 2026-10-05_crypto-101alphas H7 — -#42 over 2 days (child of H2)
+OPEN 0.09, untested (no TRAIN slice left under v3.1). Lead.
+Needs: under v3.3, searchable on TRAIN.
+
+### 2026-10-06_crypto-101alphas-b2 H1 — Kakushadze #30 volume-scaled 3-day streak fade
+OPEN 0.850: rank IC C1 +0.037, C2 +0.048 supported; C3 +0.001, EXPLORE -0.007. A 2020-22 effect; C3 also changes the response series.
+Needs: freeze and check on VAL under v3.3; test whether the C3 fade is the response-series switch.
+
+### 2026-10-06_crypto-101alphas-b2 H6 — -#54, closing strength continues (child of #54)
+OPEN 0.490: C2 IC +0.057 supported, C3 +0.023 inc; EXPLORE halves point opposite ways (+0.096 / -0.078).
+Needs: same as #30; unstable sign is the risk.

@@ -1,0 +1,12 @@
+| family | files | rows | earliest first | median first | latest last | knowable (distinct) |
+|---|---:|---:|---|---|---|---|
+| attention | 16 | 73,812 | 1932-01-01 | 2017-01-01 | 2023-11-30 | nowcast within hours; definitive values revised ~monthly; published ~00:00 UTC for that day; week end; ~15 min after publication; daily value at day end |
+| defi | 31 | 39,309 | 2011-06-19 | 2020-10-30 | 2023-11-30 | day end (but BACKFILLED: not PIT) |
+| deriv | 14 | 163,883 | 2019-05-01 | 2023-05-12 | 2023-11-30 | at stamp; open + 1h |
+| macro | 66 | 391,929 | 1946-01-01 | 2002-09-21 | 2023-11-30 | Friday 15:30 ET (3 days after stamp); Thursday ~16:30 ET (H.4.1 timing); announcement; announcement date; at that session's close; auction day 13:00 ET; dates p |
+| onchain | 28 | 891,021 | 2009-01-03 | 2009-01-17 | 2023-11-30 | after day end (~00:00-02:00 UTC next day); at stamp; at stamp; date predictable ahead; day end; period end |
+| perp | 42 | 2,929,136 | 2020-01-01 | 2020-04-25 | 2023-11-30 | at settlement; the predicted rate is visible live before it; create_time (a few seconds after); hour end; open + 1h |
+| primary | 10 | 344,867 | 2019-01-01 | 2019-06-15 | 2023-11-30 | open + 1h (price = value at bar END) |
+| spot | 27 | 1,195,949 | 2011-08-18 | 2018-04-17 | 2023-11-30 | open + 1h |
+
+total rows 6029906 files 234 all last <= VAL_END: True
