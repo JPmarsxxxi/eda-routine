@@ -1,0 +1,55 @@
+-- funding (last settled rate, stamp<=bar open): % non-null hourly rows by slice x coin
+           BTC    ETH    BNB    SOL    XRP   DOGE    ADA    LTC    BCH    DOT
+EXPLORE   60.0   60.0   56.0   32.0   59.0   39.0   58.0   59.0   60.0   35.0
+C1       100.0  100.0  100.0  100.0  100.0  100.0  100.0  100.0  100.0  100.0
+C2       100.0  100.0  100.0  100.0  100.0  100.0  100.0  100.0  100.0  100.0
+C3       100.0  100.0  100.0  100.0  100.0  100.0  100.0  100.0  100.0  100.0
+funding interval hours (non-8): {'BTC': 0, 'ETH': 0, 'BNB': 0, 'SOL': 211, 'XRP': 0, 'DOGE': 0, 'ADA': 0, 'LTC': 0, 'BCH': 0, 'DOT': 0}
+funding: share exactly 0.0001 by slice: {'EXPLORE': 0.21, 'C1': 0.52, 'C2': 0.31, 'C3': 0.3}
+-- perp klines close: % non-null hourly rows by slice x coin
+           BTC    ETH    BNB    SOL    XRP   DOGE    ADA    LTC    BCH    DOT
+EXPLORE   60.0   60.0   56.0   32.0   59.0   39.0   57.0   59.0   60.0   34.0
+C1       100.0  100.0  100.0  100.0  100.0  100.0  100.0  100.0  100.0  100.0
+C2       100.0  100.0  100.0   97.0   97.0  100.0  100.0   97.0  100.0  100.0
+C3       100.0  100.0  100.0  100.0  100.0  100.0  100.0  100.0  100.0  100.0
+-- perp premium index close: % non-null hourly rows by slice x coin
+           BTC    ETH    BNB    SOL    XRP   DOGE    ADA    LTC    BCH    DOT
+EXPLORE   60.0   60.0   56.0   32.0   59.0   39.0   57.0   59.0   60.0   34.0
+C1        98.0   98.0   98.0   98.0   98.0   98.0   98.0   98.0   98.0   98.0
+C2       100.0  100.0  100.0  100.0  100.0  100.0  100.0  100.0  100.0  100.0
+C3        99.0  100.0   99.0  100.0  100.0  100.0  100.0  100.0  100.0   99.0
+premium index: zero volume share (expected: premium klines carry no trades): 0.5731245623249299
+-- metrics: open interest (hourly last snapshot): % non-null hourly rows by slice x coin
+           BTC    ETH    BNB    SOL    XRP   DOGE    ADA    LTC    BCH    DOT
+EXPLORE   33.0    0.0    0.0    0.0    0.0    0.0    0.0    0.0    0.0    0.0
+C1       100.0   18.0   18.0   18.0   18.0   18.0   18.0   18.0   18.0   18.0
+C2       100.0  100.0  100.0  100.0  100.0  100.0  100.0  100.0  100.0  100.0
+C3       100.0  100.0  100.0  100.0  100.0  100.0  100.0  100.0  100.0  100.0
+-- metrics: long/short account ratio: % non-null hourly rows by slice x coin
+           BTC    ETH    BNB    SOL    XRP   DOGE    ADA    LTC    BCH    DOT
+EXPLORE   33.0    0.0    0.0    0.0    0.0    0.0    0.0    0.0    0.0    0.0
+C1        99.0   17.0   17.0   17.0   17.0   17.0   17.0   17.0   17.0   17.0
+C2        93.0   93.0   93.0   93.0   93.0   93.0   93.0   93.0   93.0   93.0
+C3       100.0  100.0  100.0  100.0  100.0  100.0  100.0  100.0  100.0  100.0
+OI == 0 hours: 101  OI value/ (OI*spot close) check pending
+-- coinbase close: % non-null hourly rows by slice x coin
+           BTC    ETH    SOL   XRP   DOGE    ADA    LTC    BCH    DOT
+EXPLORE  100.0  100.0    1.0  76.0    3.0   11.0  100.0  100.0    2.0
+C1       100.0  100.0  100.0   0.0  100.0  100.0  100.0  100.0  100.0
+C2       100.0  100.0  100.0   0.0  100.0  100.0  100.0  100.0  100.0
+C3       100.0  100.0  100.0   0.0  100.0  100.0  100.0  100.0  100.0
+-- upbit KRW close: % non-null hourly rows by slice x coin
+           BTC    ETH    SOL    XRP   DOGE    ADA
+EXPLORE  100.0  100.0    0.0  100.0   14.0  100.0
+C1       100.0  100.0   44.0  100.0  100.0  100.0
+C2       100.0  100.0  100.0  100.0  100.0  100.0
+C3       100.0  100.0  100.0  100.0  100.0  100.0
+
+knowability/alignment checks
+BTC corr perp ret vs spot ret same hour 0.999 lag+1 -0.015 lead -0.023
+BTC coinbase vs binance same hour 0.994
+ETH corr perp ret vs spot ret same hour 0.999 lag+1 -0.007 lead -0.008
+ETH coinbase vs binance same hour 0.995
+perp-spot close basis bp by slice (median): {'EXPLORE': 6.2, 'C1': 2.8, 'C2': -5.5, 'C3': -5.0}
+premium index close (bp) median by slice: {'EXPLORE': 3.0, 'C1': 1.8, 'C2': -4.3, 'C3': -4.2}
+OI value / (OI * spot close) ratio median BTC: 0.9998536778936045

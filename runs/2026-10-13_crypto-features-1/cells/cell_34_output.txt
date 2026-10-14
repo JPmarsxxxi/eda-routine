@@ -1,0 +1,15 @@
+f008 h1: EXPLORE: +0.0170 (t +4.44, n 10831)  C1: +0.0168 (t +2.45, n 2439)  C2: +0.0094 (t +1.33, n 2678)  C3: +0.0451 (t +8.28, n 4562)  TRAIN: +0.0222 (t +8.33, n 20510)
+f008 h6: EXPLORE: +0.0047 (t +1.29, n 10776)  C1: +0.0091 (t +1.46, n 2434)  C2: +0.0278 (t +3.65, n 2578)  C3: +0.0109 (t +2.06, n 4357)  TRAIN: +0.0095 (t +3.70, n 20145)
+f008 h24: EXPLORE: +0.0002 (t +0.05, n 10589)  C1: +0.0038 (t +0.75, n 2398)  C2: +0.0011 (t +0.18, n 2290)  C3: +0.0012 (t +0.27, n 3788)  TRAIN: +0.0009 (t +0.44, n 19065)
+
+f008 mean XS Spearman with others: {'f001': 0.01, 'f002': 0.0, 'f003': -0.0, 'f004': 0.0, 'f005': -0.01, 'f006': -0.02, 'f007': -0.01, 'b_rev1': -0.01, 'b_rev24': -0.0, 'b_mom168': -0.0, 'b_lowvol': -0.0, 'b_liq': -0.01}
+   max |corr|: f006 0.024
+
+f004 mean XS Spearman with others: {'f001': 0.0, 'f002': 0.01, 'f003': 0.01, 'f005': 0.03, 'f006': 0.0, 'f007': 0.02, 'f008': 0.0, 'b_rev1': -0.05, 'b_rev24': 0.0, 'b_mom168': -0.01, 'b_lowvol': 0.0, 'b_liq': 0.01}
+   max |corr|: b_rev1 0.05
+f008 h1: top2 ['f006', 'f007']; IC +0.0222 -> residual +0.0187 (t +1.6); residual by fold: EXPLORE: -0.0050 (t -0.30, n 547)  C1: +0.0308 (t +1.16, n 116)  C2: +0.0333 (t +1.19, n 114)  C3: +0.0700 (t +3.25, n 192)  TRAIN: +0.0187 (t +1.61, n 969)
+f004 h1: top2 ['b_rev1', 'f005']; IC +0.0239 -> residual +0.0248 (t +11.4); residual by fold: EXPLORE: +0.0233 (t +6.86, n 11874)  C1: +0.0225 (t +4.44, n 4089)  C2: +0.0319 (t +5.83, n 3997)  C3: +0.0248 (t +5.71, n 5921)  TRAIN: +0.0248 (t +11.37, n 25881)
+f008 h1: gross top3-bottom3 +2.13 bp (n 20510) cost 88.7 bp -> net -86.5 bp -> COMBINE-ONLY
+f004 h1: gross top3-bottom3 +2.12 bp (n 25971) cost 87.3 bp -> net -85.2 bp -> COMBINE-ONLY
+
+PRIMARY: max|corr| f008 = 0.024  incremental h1 = 0.0187 t 1.61  supported: False

@@ -12,3 +12,6 @@ runs/2026-09-28_btc-perp-various-free/tables/p0_r1_EXPLORE.parquet
 
 # data-job downloads: the cut copies stay local; CUT.json and SOURCES.md are committed
 runs/*/fetched/*/data/
+
+# per-run cached copies of raw TRAIN data (regenerable from data/ by the run's code)
+runs/*/work/*.parquet

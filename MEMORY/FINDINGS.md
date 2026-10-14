@@ -84,3 +84,34 @@ Needs: freeze and check on VAL under v3.3; test whether the C3 fade is the respo
 ### 2026-10-06_crypto-101alphas-b2 H6 — -#54, closing strength continues (child of #54)
 OPEN 0.490: C2 IC +0.057 supported, C3 +0.023 inc; EXPLORE halves point opposite ways (+0.096 / -0.078).
 Needs: same as #30; unstable sign is the risk.
+
+### 2026-10-13_crypto-features-1 F8 — perp premium crowding (f004) at h1 (H5, variant_of F4 at h24)
+Frozen: premium-index close minus own 720h mean, XS rank residualised on r3s and r24, negated, h1. CONFIRM +0.0213 / +0.0336 / +0.0195 (C1/C2/C3).
+VAL-PASS +0.0210 (t 4.7, 5,803 h); COMBINE-ONLY (gross +2.1 bp vs 87 bp). Max |corr| 0.05 with all other candidates; stronger in US-hour signals.
+Needs: TEST by the user; combine with the reversal features; its h24 twin F4 failed CONFIRM at +0.0186/+0.0190 (under 0.02).
+Review check (2026-10-14, TRAIN only, after the run): with a one-bar entry delay the h1 IC falls to +0.0011 / +0.0137 / +0.0112 (C1/C2/C3), two bars ~0; C3 against the FTMO-mid response alone is +0.0227 (t 4.4), so it is not the Binance print bounce, but it is a first-hour signal: it needs entry at the bar close.
+
+### 2026-10-13_crypto-features-1 F1 — bounce-free 3h reversal (f001) at h6 (H3)
+Frozen: -(log C[t-1]-log C[t-4]) XS rank, Binance closes, h6. CONFIRM +0.0174 / +0.0445 / +0.0372; VAL +0.0141 (t 1.99), inconclusive.
+The unlagged version (IC 0.058) is the Binance last-print bounce (41-69% lost with a one-bar delay); ASIA-hour signals +0.059, US-hour (13-16 UTC) ~0.
+Needs: TEST or a longer VAL; gate to signals formed 21-06 UTC; do not quote the unlagged IC.
+
+### 2026-10-13_crypto-features-1 F2 — 24h reversal, lag-1, 21-06 UTC signals (f002) at h6 (H9)
+Frozen: -(log C[t-1]-log C[t-25]) in signal hours 21-06 UTC. CONFIRM +0.0433 / +0.0361 / +0.0191; VAL +0.0284 (t 1.93), inconclusive.
+It is the plain trailing-24h reversal (corr 0.88) gated by session; incremental IC over it is negative.
+Needs: nothing new as a feature; use the session gate on the plain 24h reversal.
+
+### 2026-10-13_crypto-features-1 F3 — 1h trade-count surprise net of the move (f003) at h24 (H10)
+Frozen: log(n[t]/trailing-720h mean) XS rank residualised on bar return and |return|. CONFIRM +0.0319 / +0.0113 / +0.0512; VAL +0.0201 (t 1.38), inconclusive.
+Session- and trend-independent (cell 45); C2 (2022H1) is the weak fold; max |corr| 0.25 (168h momentum).
+Needs: TEST or a longer VAL; the 6-hour-window surprises have the opposite sign in ASIA/US signals.
+
+### 2026-10-13_crypto-features-1 F5 — closing strength, minus Alpha#54 (f005) at h24 (H2)
+Frozen: ((C-L24)/(H24-L24))*(O24/C)^5 rolling 24h. CONFIRM +0.0766 / +0.0262 / +0.0279; VAL +0.0164 (t 1.14), inconclusive.
+h1/h6 IC has the OPPOSITE sign (-0.035/-0.021); the h24 continuation is C1-heavy but survives a market-trend split.
+Needs: nothing unless a regime story for 2021H2.
+
+## One-line lists, 2026-10-13_crypto-features-1
+- 2026-10-13_crypto-features-1 CONFIRM-FAIL: F4, F6, F7, F9, F10
+- 2026-10-13_crypto-features-1 DROPPED: H6, H14
+- 2026-10-13_crypto-features-1 LEADS (not frozen): dd_336 incremental (+0.022 at h24, t 2.9, per-fold se 0.017); f009 funding beyond premium (+0.017 h24); f008 hour-of-day seasonality (+0.022 h1, C3 only); Alpha#30 volume scale subtracts (-0.0105), C3 fade is not the response switch; static -beta ranking (+0.023 h1 / +0.040 h6) is a coin fixed effect.

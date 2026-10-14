@@ -1,0 +1,86 @@
+== 1 DISTRIBUTIONS (1h log return, TRAIN)
+coin     n  sd_bp  skew  exkurt  zero_pct  q001_bp  q999_bp
+ BTC 36032  77.79 -0.85   46.32      0.03  -504.67   452.00
+ ETH 36039  97.29 -1.03   27.23      0.24  -626.36   525.44
+ BNB 36353 104.61 -0.96   31.61      0.97  -648.90   621.43
+ SOL 18868 159.39  0.19   13.91      1.05  -816.13   941.38
+ XRP 36037 117.92 -0.39   38.14      0.45  -876.61   750.36
+DOGE 18551 185.90  2.42   87.85      0.89 -1347.55  1414.72
+ ADA 27305 123.91 -0.49   19.15      1.08  -710.43   702.41
+ LTC 36036 112.07 -0.99   38.55      1.20  -712.09   656.56
+ BCH 18136 123.76 -1.80   45.04      0.41  -798.10   713.34
+ DOT 21780 138.64 -1.15   40.82      0.66  -799.91   751.51
+
+== 2 MISSINGNESS: missing hours inside each coin's own span (primary) and binance spot
+coin      first  span_h  prim_missing_h  longest_gap_h  spot_missing_h
+ BTC 2019-01-01   36432             290             25              59
+ ETH 2019-01-01   36432             286             25              59
+ BNB 2019-01-01   36432              59             10              59
+ SOL 2021-01-01   18888              13              4              13
+ XRP 2019-01-01   36432             287             25              59
+DOGE 2021-01-01   18888             242             25              13
+ ADA 2020-01-01   27672             262             25              31
+ LTC 2019-01-01   36432             288             25              59
+ BCH 2019-11-28   18182              31              5              31
+ DOT 2020-08-18   22129             249             25              19
+
+FTMO Saturday holes: share of Saturday-hours missing in primary C3 (BTC):
+{0: 0.03, 1: 0.03, 2: 0.03, 3: 0.03, 4: 0.03, 5: 0.03, 6: 0.03, 7: 0.0, 8: 0.03, 9: 0.03, 10: 0.14, 11: 0.24, 12: 0.24, 13: 0.24, 14: 0.22, 15: 0.14, 16: 0.0, 17: 0.0, 18: 0.0, 19: 0.0, 20: 0.0, 21: 0.51, 22: 0.49, 23: 0.0}
+
+== 3 AUTOCORRELATION (TRAIN): ACF of 1h returns, |returns|, log quote volume
+coin  ret_l1  ret_l2  ret_l3  ret_l6  abs_l1  abs_l24  abs_l168  vol_l1  vol_l24  vol_l168
+ BTC  -0.017  -0.019   0.004  -0.001   0.271    0.162     0.100   0.935    0.863     0.839
+ ETH  -0.007  -0.024  -0.005   0.012   0.260    0.170     0.109   0.940    0.881     0.854
+ BNB  -0.027  -0.016  -0.000  -0.005   0.320    0.204     0.110   0.933    0.863     0.817
+ SOL  -0.020  -0.013  -0.004  -0.005   0.308    0.213     0.102   0.947    0.882     0.829
+ XRP  -0.039  -0.020  -0.001   0.020   0.341    0.214     0.115   0.937    0.857     0.799
+DOGE  -0.021  -0.031  -0.005  -0.023   0.445    0.276     0.107   0.970    0.941     0.901
+ ADA  -0.050  -0.012  -0.001  -0.004   0.317    0.175     0.101   0.949    0.894     0.847
+ LTC  -0.044  -0.026   0.006   0.003   0.270    0.151     0.094   0.880    0.778     0.702
+ BCH  -0.028  -0.027  -0.011   0.016   0.298    0.173     0.122   0.880    0.778     0.701
+ DOT  -0.037  -0.050  -0.002   0.016   0.284    0.192     0.129   0.917    0.829     0.769
+2/sqrt(n)= 0.0105
+per-fold lag-1 ACF of 1h returns (BTC, ETH, DOGE):
+EXPLORE {'BTC': np.float64(-0.028), 'ETH': np.float64(-0.015), 'DOGE': np.float64(-0.022)}
+C1 {'BTC': np.float64(0.023), 'ETH': np.float64(0.005), 'DOGE': np.float64(-0.017)}
+C2 {'BTC': np.float64(-0.008), 'ETH': np.float64(-0.012), 'DOGE': np.float64(-0.07)}
+C3 {'BTC': np.float64(0.012), 'ETH': np.float64(0.038), 'DOGE': np.float64(0.021)}
+
+== 4 CROSS-COLUMN: correlation of 1h returns across coins (TRAIN, pairwise); impostor checks
+       BTC   ETH   BNB   SOL   XRP  DOGE   ADA   LTC   BCH   DOT
+BTC   1.00  0.84  0.68  0.62  0.61  0.47  0.69  0.76  0.75  0.68
+ETH   0.84  1.00  0.71  0.67  0.65  0.48  0.73  0.80  0.78  0.72
+BNB   0.68  0.71  1.00  0.59  0.57  0.42  0.67  0.66  0.68  0.65
+SOL   0.62  0.67  0.59  1.00  0.51  0.40  0.61  0.61  0.53  0.62
+XRP   0.61  0.65  0.57  0.51  1.00  0.39  0.62  0.65  0.65  0.57
+DOGE  0.47  0.48  0.42  0.40  0.39  1.00  0.43  0.46  0.39  0.45
+ADA   0.69  0.73  0.67  0.61  0.62  0.43  1.00  0.71  0.68  0.67
+LTC   0.76  0.80  0.66  0.61  0.65  0.46  0.71  1.00  0.82  0.68
+BCH   0.75  0.78  0.68  0.53  0.65  0.39  0.68  0.82  1.00  0.64
+DOT   0.68  0.72  0.65  0.62  0.57  0.45  0.67  0.68  0.64  1.00
+
+primary return vs Binance close return, corr by slice (BTC/ETH) and share of bars where prim price == binance close:
+EXPLORE {'BTC': (np.float64(1.0), np.float64(1.0)), 'ETH': (np.float64(1.0), np.float64(1.0)), 'DOGE': (np.float64(1.0), np.float64(1.0))}
+C1 {'BTC': (np.float64(1.0), np.float64(1.0)), 'ETH': (np.float64(1.0), np.float64(1.0)), 'DOGE': (np.float64(1.0), np.float64(1.0))}
+C2 {'BTC': (np.float64(0.9917), np.float64(0.0)), 'ETH': (np.float64(0.995), np.float64(0.004)), 'DOGE': (np.float64(0.9936), np.float64(0.024))}
+C3 {'BTC': (np.float64(0.995), np.float64(0.001)), 'ETH': (np.float64(0.9946), np.float64(0.008)), 'DOGE': (np.float64(0.9971), np.float64(0.091))}
+
+corr(|ret|, log quote vol) pooled:  0.258
+taker identity: buy_vol/vol mean by coin: {'BTC': 0.498, 'ETH': 0.501, 'BNB': 0.509, 'SOL': 0.491, 'XRP': 0.496, 'DOGE': 0.498, 'ADA': 0.491, 'LTC': 0.495, 'BCH': 0.497, 'DOT': 0.497}
+
+== 5 REGIME: by slice - EW-market 1h vol (bp), mean pairwise corr, median trades/hour (BTC), median quote vol (BTC, M$)
+EXPLORE: ew_vol 98.3  mean_pair_corr 0.57  BTC trades/h 23958  BTC qvol/h 19.9M  cs_dispersion 56.4bp
+C1: ew_vol 89.4  mean_pair_corr 0.68  BTC trades/h 50706  BTC qvol/h 79.2M  cs_dispersion 53.3bp
+C2: ew_vol 99.7  mean_pair_corr 0.79  BTC trades/h 41128  BTC qvol/h 60.9M  cs_dispersion 45.4bp
+C3: ew_vol 70.5  mean_pair_corr 0.67  BTC trades/h 220966  BTC qvol/h 176.5M  cs_dispersion 40.3bp
+
+== 6 INTRADAY/WEEKLY shape (TRAIN, pooled over coins): mean |1h return| bp by UTC hour; quote-vol index; by weekday
+abs-ret by hour: {0: 86.3, 1: 73.5, 2: 64.0, 3: 62.6, 4: 59.0, 5: 59.7, 6: 61.1, 7: 62.4, 8: 69.2, 9: 65.0, 10: 68.3, 11: 64.3, 12: 75.4, 13: 75.5, 14: 81.7, 15: 76.6, 16: 79.9, 17: 64.2, 18: 62.1, 19: 60.9, 20: 66.7, 21: 66.5, 22: 66.6, 23: 71.1}
+by dow(0=Mon): {0: 71.9, 1: 70.7, 2: 73.4, 3: 71.2, 4: 70.6, 5: 59.7, 6: 61.6}
+volume index by hour: {0: 1.26, 1: 1.06, 2: 0.97, 3: 0.96, 4: 0.93, 5: 0.91, 6: 0.97, 7: 0.99, 8: 1.11, 9: 1.07, 10: 1.11, 11: 1.09, 12: 1.24, 13: 1.33, 14: 1.42, 15: 1.38, 16: 1.5, 17: 1.13, 18: 1.02, 19: 0.96, 20: 0.98, 21: 0.83, 22: 0.87, 23: 0.96}
+
+== 7 WHAT A ROW IS: stamp check (open-stamped, price = bar END): corr of primary 1h return with Binance (close_t/close_t-1) vs (close_t+1/close_t) and open-stamp: bar t open == close t-1?
+BTC open_t == close_{t-1} share: 0.355
+BTC corr(prim ret_t, binance close ret_t): 0.9986  vs binance close ret_{t+1}: -0.0175  vs ret_{t-1}: -0.0162
+ETH open_t == close_{t-1} share: 0.356
+ETH corr(prim ret_t, binance close ret_t): 0.9988  vs binance close ret_{t+1}: -0.0076  vs ret_{t-1}: -0.0066

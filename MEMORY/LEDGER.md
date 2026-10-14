@@ -15,3 +15,4 @@ K_val). Those runs counted one per test cell, not per variant, so their K_train 
 | 2026-10-05 | 2026-10-05_crypto-validated-1h | - | crypto-validated-1h | E | S4 (v3.1) | 14 | 77 | 0 | crypto_panel_validated_2026-10-05 | 77 | 0 | n/a |
 | 2026-10-05 | 2026-10-05_crypto-101alphas | - | crypto-101alphas | B | S2 (v3.1) | 28 | 27 | 1 | crypto_panel_validated_2026-10-05 | 104 | 1 | n/a |
 | 2026-10-06 | 2026-10-06_crypto-101alphas-b2 | - | crypto-101alphas-b2 | B | S4 (v3.2-cloud) | 20 | 20 | 0 | crypto_panel_validated_2026-10-05 | 124 | 1 | n/a |
+| 2026-10-13 | 2026-10-13_crypto-features-1 | features | crypto-features-1 | E | S2 (v3.4) | 50 | 1291 | 5 | crypto_panel_validated_2026-10-05 | 1415 | 6 | 1 |

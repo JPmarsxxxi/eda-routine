@@ -6,7 +6,7 @@ Edit this file, then set STATUS to READY and click "Run now" on the routine. The
 DATA MUST BE PREPARED FIRST: `python C:\Users\User\eda-routine\prep_target.py <source> <name>` writes a copy that
 STOPS at the end of VAL (TEST and sealed rows are never copied). Point DATA at that copy, never at the source.
 
-STATUS: READY
+STATUS: DONE C:\Users\User\eda-routine\runs\2026-10-13_crypto-features-1
 
 JOB: features
             (v3.4. data = find outside data that predicts the target (JOB_DATA.md); features = engineer predictive,
